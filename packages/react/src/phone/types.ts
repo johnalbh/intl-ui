@@ -41,13 +41,6 @@ export interface UsePhoneInputOptions {
   disableCountryGuess?: boolean;
 
   /**
-   * If true, the dial code prefix cannot be deleted from the input via
-   * backspace. The user must change the selected country to change the
-   * prefix. Default: false.
-   */
-  forceDialCode?: boolean;
-
-  /**
    * Custom list of countries to use instead of the full built-in list.
    * The order is preserved for the dropdown.
    */

@@ -11,8 +11,9 @@ import {
 import {
   buildDialCodeTrie,
   countries as allCountries,
-  formatPhone,
+  formatNational,
   getCountryByIso2,
+  getCountryByIso3,
   guessCountryByPhone,
   normalizeText,
   parsePhone,
@@ -68,7 +69,6 @@ export function usePhoneInput(
     defaultCountry,
     onCountryChange,
     disableCountryGuess = false,
-    forceDialCode = false,
     countries: countryListOverride,
     preferredCountries = [],
   } = options;
@@ -154,10 +154,24 @@ export function usePhoneInput(
 
   const isValid = parsed?.isValid ?? false;
 
+  // The input shows ONLY the national portion of the number — never the
+  // dial code. This is the "separate dial code" model used by every
+  // modern messaging app: the country (and its prefix) lives in the
+  // <PhoneInput.CountrySelect> trigger, the input only contains the
+  // digits the user actually types. The benefit is that backspace
+  // works the way users expect — they can clear the entire input and
+  // re-type without fighting the formatter, and switching countries
+  // happens through the dropdown (or by typing "+" + new digits to
+  // trigger international auto-detection).
   const inputValue = useMemo(() => {
-    if (!value) return country ? `+${country.dialCode} ` : '';
+    if (!value) return '';
     if (!country) return value;
-    return formatPhone(value, country);
+    const digits = removeNonDigits(value);
+    const nationalDigits = digits.startsWith(country.dialCode)
+      ? digits.slice(country.dialCode.length)
+      : digits;
+    if (nationalDigits.length === 0) return '';
+    return formatNational(nationalDigits, country);
   }, [value, country]);
 
   const visibleCountries = useMemo(() => {
@@ -205,62 +219,90 @@ export function usePhoneInput(
   );
 
   // ─── Core input change handler ───────────────────────────────────
+  // Three distinct paths based on what the user typed:
+  //
+  //   1. ISO-code shortcut — the input is exactly 2 or 3 letters
+  //      that match a country code (alpha-2 or alpha-3). Switches
+  //      the country and clears the input. Examples: "co", "USA",
+  //      "gb", "fra". Disabled when disableCountryGuess is true.
+  //
+  //   2. International format (raw starts with "+") — the user is
+  //      typing or pasting a full E.164-style number. We let the trie
+  //      auto-detect the country from the digits and update the
+  //      canonical value accordingly.
+  //
+  //   3. National format (default) — the digits ARE the national
+  //      number, the dial code comes from the selected country. This
+  //      is the everyday path because in the Model B design the user
+  //      never sees the "+57" prefix in the input.
+  //
+  // Empty input clears the value but keeps the country selection so
+  // the user can immediately re-type without losing context.
   const handleInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const raw = event.target.value;
+      const trimmed = raw.trim();
       const digits = removeNonDigits(raw);
+      const isInternationalFormat = raw.trimStart().startsWith('+');
 
-      // Empty input: clear the value but keep the current country.
+      // ─── Path 1: ISO-code shortcut ───────────────────────────────
+      // Matches strictly: 2 or 3 ASCII letters, nothing else. So
+      // "co" switches to Colombia, but "co3" or "c o" fall through
+      // to the national-digits path. The user must explicitly type
+      // a clean country code for the shortcut to fire.
+      if (!disableCountryGuess && /^[A-Za-z]{2,3}$/.test(trimmed)) {
+        const code = trimmed.toLowerCase();
+        const matched =
+          code.length === 2 ? getCountryByIso2(code) : getCountryByIso3(code);
+        if (matched) {
+          setCountryRaw(matched);
+          // Clear the input after switching — the user is now ready
+          // to type the national digits for the new country.
+          emitChange('', 'user-type');
+          return;
+        }
+      }
+
+      // Empty input → clear value, preserve country.
       if (digits.length === 0) {
         emitChange('', 'user-type');
         return;
       }
 
-      // If the user is typing national digits and we already have a
-      // country, enforce the dial code so the canonical value always
-      // starts with it. This is the most common case.
-      let canonical: string;
-      if (country) {
-        if (digits.startsWith(country.dialCode)) {
-          canonical = `+${digits}`;
-        } else if (forceDialCode) {
-          canonical = `+${country.dialCode}${digits}`;
-        } else {
-          // Try to detect a new country from the fresh input.
-          const guess = disableCountryGuess
-            ? { country: country, fullDialCodeMatch: false }
-            : guessCountryByPhone(trie, digits, country);
-          if (guess.country && guess.country.iso2 !== country.iso2) {
+      // ─── Path 2: International format ────────────────────────────
+      if (isInternationalFormat) {
+        if (!disableCountryGuess) {
+          const guess = guessCountryByPhone(
+            trie,
+            digits,
+            country ?? undefined,
+          );
+          if (guess.country && guess.country.iso2 !== country?.iso2) {
             setCountryRaw(guess.country);
-            canonical = digits.startsWith(guess.country.dialCode)
-              ? `+${digits}`
-              : `+${guess.country.dialCode}${digits}`;
-          } else {
-            canonical = `+${country.dialCode}${digits}`;
           }
         }
-      } else if (!disableCountryGuess) {
+        emitChange(`+${digits}`, 'user-type');
+        return;
+      }
+
+      // ─── Path 3: National format ─────────────────────────────────
+      if (country) {
+        const canonical = `+${country.dialCode}${digits}`;
+        emitChange(canonical, 'user-type');
+        return;
+      }
+
+      // No country yet and the user is typing without "+". Try to
+      // detect what country these digits could belong to.
+      if (!disableCountryGuess) {
         const guess = guessCountryByPhone(trie, digits);
         if (guess.country) {
           setCountryRaw(guess.country);
-          canonical = `+${digits}`;
-        } else {
-          canonical = `+${digits}`;
         }
-      } else {
-        canonical = `+${digits}`;
       }
-
-      emitChange(canonical, 'user-type');
+      emitChange(`+${digits}`, 'user-type');
     },
-    [
-      country,
-      forceDialCode,
-      disableCountryGuess,
-      trie,
-      setCountryRaw,
-      emitChange,
-    ],
+    [country, disableCountryGuess, trie, setCountryRaw, emitChange],
   );
 
   // ─── Keyboard handler for the <input> ────────────────────────────

@@ -63,9 +63,12 @@ export function BasicUncontrolledDemo() {
       </button>
 
       {/* ─── Input: the actual phone number field ────────────────── */}
+      {/* The placeholder no longer mentions a "+" prefix because in
+          Model B the input only contains national digits. The dial
+          code lives in the trigger button to the left. */}
       <input
         {...getInputProps()}
-        placeholder="Phone number"
+        placeholder="National number"
         className={`flex-1 px-3 py-2 border border-l-0 rounded-r outline-none ${
           isValid
             ? 'border-green-500 focus:border-green-600'
@@ -213,12 +216,13 @@ export function MinimalHeadlessDemo() {
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <span className="text-xl">{country?.flag}</span>
+        <span className="text-sm text-gray-600">+{country?.dialCode}</span>
         <input
           {...getInputProps()}
           className={`w-64 px-3 py-2 border rounded outline-none ${
             isValid ? 'border-green-500' : 'border-gray-300'
           }`}
-          placeholder={`+${country?.dialCode ?? '??'} phone number`}
+          placeholder="National number"
         />
       </div>
       <pre className="text-xs bg-gray-50 p-3 rounded border overflow-auto">

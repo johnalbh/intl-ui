@@ -44,7 +44,9 @@ describe('usePhoneInput', () => {
       expect(result.current.value).toBe('');
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.country?.capital).toBe('Bogotá');
-      expect(result.current.inputValue).toBe('+57 ');
+      // In Model B, the input only contains the national digits.
+      // The dial code lives in the country-select trigger, not here.
+      expect(result.current.inputValue).toBe('');
     });
   });
 
@@ -52,17 +54,39 @@ describe('usePhoneInput', () => {
   // User typing behaviour
   // ───────────────────────────────────────────────────────────────
   describe('user input', () => {
-    it('formats digits against the country mask as the user types', () => {
+    it('formats national digits against the country mask as the user types', () => {
       const { result } = renderHook(() =>
         usePhoneInput({ defaultCountry: 'co' }),
       );
 
+      // National-format input (no leading +): the digits ARE the
+      // national number, the dial code comes from the selected country.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('3105551234'));
+      });
+
+      // Internal value is always the canonical E.164 string.
+      expect(result.current.value).toBe('+573105551234');
+      // Displayed inputValue is the national portion, masked per country.
+      expect(result.current.inputValue).toBe('310 555 1234');
+      expect(result.current.isValid).toBe(true);
+    });
+
+    it('international format input (leading "+") is parsed via the trie', () => {
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co' }),
+      );
+
+      // When the user pastes "+57 3105551234", the leading + flips
+      // the handler into international mode and the trie parses the
+      // dial code out of the digits.
       act(() => {
         result.current.getInputProps().onChange(changeEvent('+57 3105551234'));
       });
 
       expect(result.current.value).toBe('+573105551234');
-      expect(result.current.inputValue).toBe('+57 310 555 1234');
+      expect(result.current.inputValue).toBe('310 555 1234');
+      expect(result.current.country?.iso2).toBe('co');
       expect(result.current.isValid).toBe(true);
     });
 
@@ -103,6 +127,183 @@ describe('usePhoneInput', () => {
       expect(result.current.isValid).toBe(false);
       // The country should be preserved when clearing.
       expect(result.current.country?.iso2).toBe('co');
+    });
+
+    it('user can clear the input via backspace and re-type a new number', () => {
+      // This is the regression test for the Model A bug where the
+      // dial code prefix was unfightable: backspace would shrink the
+      // input to "+57", the formatter would re-stamp it back to "+57 ",
+      // and the user got stuck. With Model B the dial code never lives
+      // in the input, so backspace clears national digits cleanly and
+      // typing fresh digits works immediately.
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co' }),
+      );
+
+      // Type a Colombian number.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('3105551234'));
+      });
+      expect(result.current.inputValue).toBe('310 555 1234');
+      expect(result.current.value).toBe('+573105551234');
+
+      // User selects-all and deletes (browser fires onChange with "").
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent(''));
+      });
+      expect(result.current.inputValue).toBe('');
+      expect(result.current.value).toBe('');
+      // Country is preserved so the next typed digits are still CO.
+      expect(result.current.country?.iso2).toBe('co');
+
+      // User immediately types a new Colombian number — should work.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('3209876543'));
+      });
+      expect(result.current.inputValue).toBe('320 987 6543');
+      expect(result.current.value).toBe('+573209876543');
+    });
+
+    it('typing 2-letter ISO code switches country and clears the input', () => {
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'us' }),
+      );
+      expect(result.current.country?.iso2).toBe('us');
+
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('co'));
+      });
+
+      expect(result.current.country?.iso2).toBe('co');
+      expect(result.current.country?.capital).toBe('Bogotá');
+      expect(result.current.value).toBe('');
+      expect(result.current.inputValue).toBe('');
+    });
+
+    it('typing 3-letter ISO code (alpha-3) switches the country', () => {
+      const { result } = renderHook(() => usePhoneInput());
+
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('USA'));
+      });
+      expect(result.current.country?.iso2).toBe('us');
+
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('col'));
+      });
+      expect(result.current.country?.iso2).toBe('co');
+
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('deu'));
+      });
+      expect(result.current.country?.iso2).toBe('de');
+    });
+
+    it('invalid ISO code falls through to digits path without switching', () => {
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co' }),
+      );
+
+      // "xx" is not a real country code — should fall through and
+      // be treated as text without digits, leaving the country alone.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('xx'));
+      });
+      expect(result.current.country?.iso2).toBe('co');
+    });
+
+    it('non-letter input does not trigger the ISO shortcut', () => {
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co' }),
+      );
+
+      // "co3" should be treated as digits "3" with country=CO,
+      // not as ISO code "co" + leftover.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('co3'));
+      });
+      expect(result.current.country?.iso2).toBe('co');
+      expect(result.current.value).toBe('+573');
+    });
+
+    it('ISO shortcut respects disableCountryGuess', () => {
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co', disableCountryGuess: true }),
+      );
+
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('us'));
+      });
+      // Country should NOT change because guessing is disabled.
+      expect(result.current.country?.iso2).toBe('co');
+    });
+
+    it('typing "+" with new digits switches the country via auto-detect', () => {
+      // The other half of the Model B contract: while the user can
+      // never delete the dial code via backspace (because it's not
+      // in the input), they CAN switch country by typing "+" + the
+      // new dial code as international format. The trie picks the
+      // best match and the hook flips countries automatically.
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co' }),
+      );
+
+      // Type a Colombian number to set up state.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('3105551234'));
+      });
+      expect(result.current.country?.iso2).toBe('co');
+
+      // User pastes a UK international number — country flips to GB.
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('+442071838750'));
+      });
+      expect(result.current.country?.iso2).toBe('gb');
+      expect(result.current.value).toBe('+442071838750');
+    });
+
+    it('inputValue never starts with the dial code prefix', () => {
+      // Structural guarantee of Model B — the input is always free
+      // of any "+<dialCode>" prefix, regardless of how the value got
+      // there. The dial code lives in the country-select trigger.
+      // (We can't use a simple .not.toContain(dialCode) because the
+      // dial code digits may legitimately appear inside the masked
+      // national number — e.g. US country.dialCode="1" naturally
+      // shows up in "(1)23-4567" type masks.)
+      const cases: Array<{
+        defaultCountry: 'co' | 'us' | 'gb';
+        defaultValue: string;
+        expectedInputValue: string;
+      }> = [
+        {
+          defaultCountry: 'co',
+          defaultValue: '+573105551234',
+          expectedInputValue: '310 555 1234',
+        },
+        {
+          defaultCountry: 'us',
+          defaultValue: '+12025551234',
+          expectedInputValue: '202 555 1234',
+        },
+        {
+          defaultCountry: 'gb',
+          defaultValue: '+442071838750',
+          expectedInputValue: '2071 838750',
+        },
+      ];
+
+      for (const { defaultCountry, defaultValue, expectedInputValue } of cases) {
+        const { result } = renderHook(() =>
+          usePhoneInput({ defaultCountry, defaultValue }),
+        );
+        expect(result.current.inputValue.startsWith('+')).toBe(false);
+        expect(
+          result.current.inputValue.startsWith(
+            result.current.country!.dialCode,
+          ) && result.current.inputValue.charAt(1) === ' ',
+        ).toBe(false);
+        expect(result.current.inputValue).toBe(expectedInputValue);
+      }
     });
   });
 
