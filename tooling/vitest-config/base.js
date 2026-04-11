@@ -29,7 +29,10 @@ export const baseConfig = defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/__tests__/**/*.test.ts'],
+    include: [
+      'src/**/*.test.{ts,tsx}',
+      'src/**/__tests__/**/*.test.{ts,tsx}',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html', 'lcov'],
