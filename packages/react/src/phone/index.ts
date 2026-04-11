@@ -4,8 +4,34 @@ export type {
   UsePhoneInputReturn,
   ValueChangeMeta,
   ValueChangeSource,
-  PhoneInputProps,
+  PhoneInputProps as PhoneInputInputGetterProps,
   CountrySelectTriggerProps,
   CountryListProps,
   CountryOptionProps,
 } from './types';
+
+// Compound component suite
+export {
+  PhoneInput,
+  PhoneInputRoot,
+  PhoneInputInput,
+  PhoneInputCountrySelect,
+  PhoneInputFlag,
+  PhoneInputDialCode,
+  PhoneInputCountryList,
+  PhoneInputCountryListItem,
+} from './PhoneInput';
+export type {
+  PhoneInputProps,
+  PhoneInputRootProps,
+  PhoneInputInputProps,
+  PhoneInputCountrySelectProps,
+  PhoneInputFlagProps,
+  PhoneInputDialCodeProps,
+  PhoneInputCountryListProps,
+  PhoneInputCountryListItemProps,
+} from './PhoneInput';
+
+// Low-level composition primitives (for power users)
+export { Slot, mergeProps, composeRefs } from './Slot';
+export type { SlotProps } from './Slot';

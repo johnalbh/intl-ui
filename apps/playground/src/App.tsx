@@ -3,6 +3,11 @@ import {
   ControlledDemo,
   MinimalHeadlessDemo,
 } from './demos/usePhoneInput-demo';
+import {
+  OneLinerDemo,
+  CompoundDemo,
+  AsChildDemo,
+} from './demos/PhoneInput-compound-demo';
 
 /**
  * Playground root — mounts every demo side by side so you can click
@@ -41,6 +46,36 @@ export function App() {
         description="The smallest possible consumer. Shows the live parsed object so you can watch the hook detect countries as you type."
       >
         <MinimalHeadlessDemo />
+      </DemoSection>
+
+      <header className="border-b pb-2 pt-8">
+        <h1 className="text-xl font-bold">Compound components</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          The middle abstraction level: one-liner, full compound layout,
+          and the asChild pattern. All backed by the same underlying
+          usePhoneInput hook, just wrapped in ergonomic React components.
+        </p>
+      </header>
+
+      <DemoSection
+        title="4. One-liner (<PhoneInput />)"
+        description="Zero children, styling passed via triggerProps/inputProps. The fastest way to drop a phone input into any page."
+      >
+        <OneLinerDemo />
+      </DemoSection>
+
+      <DemoSection
+        title="5. Full compound layout (<PhoneInput.Root>)"
+        description="Complete control of the layout while the children still handle state, events, and ARIA via context."
+      >
+        <CompoundDemo />
+      </DemoSection>
+
+      <DemoSection
+        title="6. asChild — clone a styled input"
+        description="When you already have a design-system input and want PhoneInput to take over its behavior without replacing the element."
+      >
+        <AsChildDemo />
       </DemoSection>
     </div>
   );
