@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+coverage/
+.DS_Store
+*.log
+.env
+.env.local
+
+# Local scratchpad for manual smoke tests — not part of the published package
+.claude/
+
+# Internal planning docs — not meant to ship with the package
+PLAN.md
