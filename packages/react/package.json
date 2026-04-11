@@ -1,7 +1,7 @@
 {
-  "name": "@intl-ui/core",
-  "version": "0.1.0",
-  "description": "Framework-agnostic international data and utilities: countries, phone formatting, validation, dial codes",
+  "name": "@intl-ui/react",
+  "version": "0.0.0",
+  "description": "React components and hooks for international UI: phone input, country selector, city selector. Headless-first, accessible, framework-free styling.",
   "license": "MIT",
   "author": "John Alberto López Hernández",
   "type": "module",
@@ -10,26 +10,16 @@
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "default": "./dist/index.mjs"
       },
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
-    },
-    "./phone": {
-      "import": {
-        "types": "./dist/phone.d.ts",
-        "default": "./dist/phone.js"
-      },
-      "require": {
-        "types": "./dist/phone.d.cts",
-        "default": "./dist/phone.cjs"
-      }
     }
   },
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
@@ -46,31 +36,46 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
+  "dependencies": {
+    "@intl-ui/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0"
+  },
   "devDependencies": {
     "@intl-ui/eslint-config": "workspace:*",
     "@intl-ui/tsconfig": "workspace:*",
     "@intl-ui/vitest-config": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.17",
     "@vitest/coverage-v8": "^3.2.1",
     "eslint": "^9.18.0",
+    "happy-dom": "^15.11.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.1"
   },
   "keywords": [
+    "react",
     "phone",
+    "phone-input",
     "international",
     "country",
-    "dial-code",
-    "format",
-    "validate",
-    "e164",
-    "iso-3166",
+    "country-select",
+    "headless",
+    "accessible",
+    "wcag",
+    "intl",
     "typescript"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/johnalbh/intl-ui",
-    "directory": "packages/core"
+    "directory": "packages/react"
   },
   "publishConfig": {
     "access": "public"
