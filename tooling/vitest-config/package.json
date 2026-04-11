@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./base.ts",
+  "main": "./base.js",
   "exports": {
-    "./base": "./base.ts"
+    "./base": "./base.js"
   },
-  "files": ["base.ts"],
+  "files": ["base.js"],
   "peerDependencies": {
     "vitest": "^3.0.0",
     "@vitest/coverage-v8": "^3.0.0"

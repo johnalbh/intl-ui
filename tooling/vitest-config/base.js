@@ -1,4 +1,4 @@
-import { defineConfig, mergeConfig, type UserConfig } from 'vitest/config';
+import { defineConfig, mergeConfig } from 'vitest/config';
 
 /**
  * Shared Vitest configuration for @intl-ui packages.
@@ -7,16 +7,22 @@ import { defineConfig, mergeConfig, type UserConfig } from 'vitest/config';
  * environment, setup files, or coverage thresholds without duplicating
  * the core configuration.
  *
+ * Kept as .js (not .ts) on purpose: Node cannot load .ts files via
+ * package exports without a transpiler, and Vitest/Vite load their
+ * config in a context where workspace-shared TS files fail to resolve
+ * in CI even when they work locally. JSDoc types still flow through
+ * editor tooling, so DX is unchanged.
+ *
  * Usage:
  *
  *   // packages/<name>/vitest.config.ts
- *   import { mergeConfig } from 'vitest/config';
  *   import { baseConfig } from '@intl-ui/vitest-config/base';
+ *   export default baseConfig;
  *
- *   export default mergeConfig(baseConfig, {
- *     test: {
- *       // package-specific overrides
- *     },
+ *   // With overrides:
+ *   import { defineProjectConfig } from '@intl-ui/vitest-config/base';
+ *   export default defineProjectConfig({
+ *     test: { environment: 'jsdom' },
  *   });
  */
 export const baseConfig = defineConfig({
@@ -46,9 +52,12 @@ export const baseConfig = defineConfig({
 });
 
 /**
- * Convenience helper for packages that only need to add small overrides
+ * Convenience helper for packages that need to add small overrides
  * without importing mergeConfig themselves.
+ *
+ * @param {import('vitest/config').UserConfig} [overrides]
+ * @returns {import('vitest/config').UserConfig}
  */
-export function defineProjectConfig(overrides: UserConfig = {}): UserConfig {
+export function defineProjectConfig(overrides = {}) {
   return mergeConfig(baseConfig, overrides);
 }
