@@ -16,6 +16,8 @@
 
 import { PhoneInput } from '@intl-ui/react';
 
+import { OutputInspectorInContext } from '../components/OutputInspector';
+
 // ═════════════════════════════════════════════════════════════════════
 // DEMO A — The one-liner
 // ═════════════════════════════════════════════════════════════════════
@@ -24,22 +26,39 @@ import { PhoneInput } from '@intl-ui/react';
 // "I just need a phone input and I'll style it later" case.
 //
 export function OneLinerDemo() {
+  // The <PhoneInput /> wrapper internally mounts a <PhoneInput.Root>,
+  // so we wrap ourselves to get access to the same context for the
+  // OutputInspectorInContext child below. This is a tiny bit verbose
+  // but shows consumers how to add their own compound children
+  // (like an output panel) to the one-liner layout.
   return (
-    <PhoneInput
+    <PhoneInput.Root
       defaultCountry="co"
-      className="inline-flex"
-      triggerProps={{
-        className: 'px-3 border rounded-l bg-gray-50 hover:bg-gray-100',
-      }}
-      inputProps={{
-        placeholder: 'Phone number',
-        className: 'flex-1 px-3 py-2 border border-l-0 rounded-r outline-none',
-      }}
       onValueChange={(value, meta) => {
         // eslint-disable-next-line no-console
         console.log('[one-liner]', value, meta.isValid);
       }}
-    />
+    >
+      <div className="relative inline-flex">
+        <PhoneInput.CountrySelect className="px-3 border rounded-l bg-gray-50 hover:bg-gray-100" />
+        <PhoneInput.Input
+          placeholder="Phone number"
+          className="flex-1 px-3 py-2 border border-l-0 rounded-r outline-none"
+        />
+        <PhoneInput.CountryList className="absolute top-full left-0 mt-1 w-80 max-h-60 overflow-y-auto bg-white border rounded shadow-lg py-1 z-10">
+          {(country, index) => (
+            <PhoneInput.CountryListItem
+              key={country.iso2}
+              country={country}
+              index={index}
+              className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-100"
+            />
+          )}
+        </PhoneInput.CountryList>
+      </div>
+
+      <OutputInspectorInContext />
+    </PhoneInput.Root>
   );
 }
 
@@ -90,6 +109,8 @@ export function CompoundDemo() {
           )}
         </PhoneInput.CountryList>
       </div>
+
+      <OutputInspectorInContext />
     </PhoneInput.Root>
   );
 }
@@ -122,11 +143,13 @@ export function AsChildDemo() {
               this element and merge its own props (value, onChange,
               type, onKeyDown, refs) into it. */}
           <input
-            placeholder="(555) 123-4567"
+            placeholder="Phone"
             className="px-4 py-2 border-2 border-indigo-200 rounded-full outline-none focus:border-indigo-500 transition-colors"
           />
         </PhoneInput.Input>
       </div>
+
+      <OutputInspectorInContext />
     </PhoneInput.Root>
   );
 }

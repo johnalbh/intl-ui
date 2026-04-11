@@ -11,7 +11,7 @@ import {
 import {
   buildDialCodeTrie,
   countries as allCountries,
-  formatNational,
+  formatPhone,
   getCountryByIso2,
   getCountryByIso3,
   guessCountryByPhone,
@@ -154,24 +154,28 @@ export function usePhoneInput(
 
   const isValid = parsed?.isValid ?? false;
 
-  // The input shows ONLY the national portion of the number — never the
-  // dial code. This is the "separate dial code" model used by every
-  // modern messaging app: the country (and its prefix) lives in the
-  // <PhoneInput.CountrySelect> trigger, the input only contains the
-  // digits the user actually types. The benefit is that backspace
-  // works the way users expect — they can clear the entire input and
-  // re-type without fighting the formatter, and switching countries
-  // happens through the dropdown (or by typing "+" + new digits to
-  // trigger international auto-detection).
+  // The input shows the full international format — "+<dialCode> <mask>"
+  // — so the user sees exactly what they are typing. This is the
+  // classic "combined input" model from react-phone-number-input and
+  // intl-tel-input. Backspacing is made non-broken by handleInputChange:
+  // when the user deletes past the dial code or clears the input
+  // completely, the country is cleared too and they can immediately
+  // type a new international prefix (e.g. "+380" for Ukraine) and the
+  // trie re-detects the country.
+  //
+  // The one subtle case: when value === "" + country, we show
+  // "+<dialCode> " as an editable placeholder (the space makes it
+  // obvious where the national digits will go). When the user hits
+  // backspace and the value becomes just the dial code digits, we
+  // show "+<dialCode>" without the trailing space — otherwise the
+  // formatter would re-stamp the space and trap the user in a loop.
   const inputValue = useMemo(() => {
-    if (!value) return '';
+    if (!value && !country) return '';
+    if (!value && country) return `+${country.dialCode} `;
     if (!country) return value;
     const digits = removeNonDigits(value);
-    const nationalDigits = digits.startsWith(country.dialCode)
-      ? digits.slice(country.dialCode.length)
-      : digits;
-    if (nationalDigits.length === 0) return '';
-    return formatNational(nationalDigits, country);
+    if (digits === country.dialCode) return `+${country.dialCode}`;
+    return formatPhone(value, country);
   }, [value, country]);
 
   const visibleCountries = useMemo(() => {
@@ -219,25 +223,32 @@ export function usePhoneInput(
   );
 
   // ─── Core input change handler ───────────────────────────────────
-  // Three distinct paths based on what the user typed:
+  // Six distinct paths, checked in order:
   //
-  //   1. ISO-code shortcut — the input is exactly 2 or 3 letters
-  //      that match a country code (alpha-2 or alpha-3). Switches
-  //      the country and clears the input. Examples: "co", "USA",
-  //      "gb", "fra". Disabled when disableCountryGuess is true.
+  //   1. ISO shortcut    — raw is exactly 2-3 ASCII letters that
+  //                        match a real country code ("co", "USA",
+  //                        "gb"). Switches and clears.
+  //   2. Fully empty     — raw is "". User cleared everything →
+  //                        clear both value AND country so they can
+  //                        start fresh with a new international
+  //                        prefix like "+380".
+  //   3. Lone "+"        — raw is "+". User is starting international
+  //                        entry. Clear country, store "+" as value.
+  //   4. Garbage         — raw has characters but no digits and is
+  //                        not a shortcut or "+". Reject silently so
+  //                        React's next render resets the input.
+  //   5. International   — raw starts with "+". If the user has
+  //                        backspaced below the current country's
+  //                        dial code length, clear the country; then
+  //                        let the trie re-detect. Emits "+digits".
+  //   6. National        — default for raw without a leading "+".
+  //                        The digits ARE the national number; the
+  //                        dial code comes from the selected country.
   //
-  //   2. International format (raw starts with "+") — the user is
-  //      typing or pasting a full E.164-style number. We let the trie
-  //      auto-detect the country from the digits and update the
-  //      canonical value accordingly.
-  //
-  //   3. National format (default) — the digits ARE the national
-  //      number, the dial code comes from the selected country. This
-  //      is the everyday path because in the Model B design the user
-  //      never sees the "+57" prefix in the input.
-  //
-  // Empty input clears the value but keeps the country selection so
-  // the user can immediately re-type without losing context.
+  // This design supports the full clear-and-retype scenario: user
+  // starts with "+57 310 555 1234", presses Cmd+A + Backspace, sees
+  // empty input with no country, types "+380 099 999" and sees the
+  // country flip to Ukraine automatically.
   const handleInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const raw = event.target.value;
@@ -245,32 +256,49 @@ export function usePhoneInput(
       const digits = removeNonDigits(raw);
       const isInternationalFormat = raw.trimStart().startsWith('+');
 
-      // ─── Path 1: ISO-code shortcut ───────────────────────────────
-      // Matches strictly: 2 or 3 ASCII letters, nothing else. So
-      // "co" switches to Colombia, but "co3" or "c o" fall through
-      // to the national-digits path. The user must explicitly type
-      // a clean country code for the shortcut to fire.
+      // ─── Path 1: ISO shortcut ────────────────────────────────────
       if (!disableCountryGuess && /^[A-Za-z]{2,3}$/.test(trimmed)) {
         const code = trimmed.toLowerCase();
         const matched =
           code.length === 2 ? getCountryByIso2(code) : getCountryByIso3(code);
         if (matched) {
           setCountryRaw(matched);
-          // Clear the input after switching — the user is now ready
-          // to type the national digits for the new country.
           emitChange('', 'user-type');
           return;
         }
       }
 
-      // Empty input → clear value, preserve country.
-      if (digits.length === 0) {
+      // ─── Path 2: Fully empty → clear everything ──────────────────
+      if (raw.length === 0) {
+        setCountryRaw(null);
         emitChange('', 'user-type');
         return;
       }
 
-      // ─── Path 2: International format ────────────────────────────
+      // ─── Path 3: Lone "+" → starting international entry ─────────
+      if (trimmed === '+') {
+        setCountryRaw(null);
+        emitChange('+', 'user-type');
+        return;
+      }
+
+      // ─── Path 4: Garbage (non-empty raw, no digits) ──────────────
+      // Reject silently. React re-renders with the previous
+      // inputValue, effectively undoing the garbage keystroke.
+      if (digits.length === 0) {
+        return;
+      }
+
+      // ─── Path 5: International format ────────────────────────────
       if (isInternationalFormat) {
+        // If the user has backspaced below the current country's
+        // dial code length, they are trying to switch countries —
+        // clear the current country so the trie can re-detect.
+        if (country && digits.length < country.dialCode.length) {
+          setCountryRaw(null);
+          emitChange(`+${digits}`, 'user-type');
+          return;
+        }
         if (!disableCountryGuess) {
           const guess = guessCountryByPhone(
             trie,
@@ -285,7 +313,7 @@ export function usePhoneInput(
         return;
       }
 
-      // ─── Path 3: National format ─────────────────────────────────
+      // ─── Path 6: National format ─────────────────────────────────
       if (country) {
         const canonical = `+${country.dialCode}${digits}`;
         emitChange(canonical, 'user-type');
@@ -378,6 +406,43 @@ export function usePhoneInput(
   const setInputRef = useCallback((node: HTMLInputElement | null) => {
     inputRef.current = node;
   }, []);
+
+  // ─── Focus handler — auto-insert "+" when entering an empty input ─
+  // When the user clicks or tabs into an empty input that has no
+  // country selected yet, we insert a lone "+" into the value. This
+  // is a pure usability win: the user never has to type the "+"
+  // themselves because it's already there waiting for them to type
+  // the dial code digits.
+  //
+  // Edge cases:
+  //   • If a country is already selected (default or user-picked),
+  //     the input shows "+<dialCode> " via the inputValue derivation
+  //     and we do NOT overwrite it with a lone "+".
+  //   • If the input already has any value (focus after a blur, or
+  //     re-focus after mouse out), we leave the value alone.
+  const handleInputFocus = useCallback(
+    (_event: FocusEvent<HTMLInputElement>) => {
+      if (!value && !country) {
+        emitChange('+', 'user-type');
+      }
+    },
+    [value, country, emitChange],
+  );
+
+  // ─── Blur handler — clear the lone "+" if the user never typed ────
+  // If the user focused, saw "+", and then clicked away without
+  // typing a single digit, we restore the empty state so the input
+  // goes back to showing its placeholder instead of a dangling "+".
+  // Anything beyond a lone "+" means the user committed some intent,
+  // so we leave it alone.
+  const handleInputBlur = useCallback(
+    (_event: FocusEvent<HTMLInputElement>) => {
+      if (value === '+') {
+        emitChange('', 'user-type');
+      }
+    },
+    [value, emitChange],
+  );
 
   // ─── Actions ─────────────────────────────────────────────────────
   const setCountry = useCallback(
@@ -477,17 +542,20 @@ export function usePhoneInput(
       type: 'tel',
       value: inputValue,
       onChange: handleInputChange,
-      onFocus: (_event: FocusEvent<HTMLInputElement>) => {
-        /* reserved for sprint 2.3 (focus management) */
-      },
-      onBlur: (_event: FocusEvent<HTMLInputElement>) => {
-        /* reserved for sprint 2.3 (focus management) */
-      },
+      onFocus: handleInputFocus,
+      onBlur: handleInputBlur,
       onKeyDown: handleInputKeyDown,
       autoComplete: 'tel',
       'aria-autocomplete': 'none',
     }),
-    [inputValue, handleInputChange, handleInputKeyDown, setInputRef],
+    [
+      inputValue,
+      handleInputChange,
+      handleInputFocus,
+      handleInputBlur,
+      handleInputKeyDown,
+      setInputRef,
+    ],
   );
 
   const getCountrySelectProps = useCallback(
@@ -559,6 +627,7 @@ export function usePhoneInput(
     isValid,
     isOpen: uiState.isOpen,
     focusedIndex: uiState.focusedIndex,
+    filter: uiState.filter,
     visibleCountries,
     getInputProps,
     getCountrySelectProps,

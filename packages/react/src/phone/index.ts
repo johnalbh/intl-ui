@@ -35,3 +35,8 @@ export type {
 // Low-level composition primitives (for power users)
 export { Slot, mergeProps, composeRefs } from './Slot';
 export type { SlotProps } from './Slot';
+
+// Context hook — exposed so consumers can write their own custom
+// compound children that read the phone input state. Throws a clear
+// error if called outside <PhoneInput.Root>.
+export { usePhoneInputContext } from './context';

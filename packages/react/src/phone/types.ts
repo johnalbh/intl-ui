@@ -92,6 +92,8 @@ export interface UsePhoneInputReturn {
   isOpen: boolean;
   /** Index of the currently focused country in the visible list, or -1. */
   focusedIndex: number;
+  /** Current filter text driving visibleCountries. */
+  filter: string;
   /** The countries currently visible in the dropdown (after filtering). */
   visibleCountries: Country[];
 

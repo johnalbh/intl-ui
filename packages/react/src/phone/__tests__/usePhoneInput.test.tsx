@@ -15,6 +15,13 @@ function changeEvent(value: string) {
   } as unknown as React.ChangeEvent<HTMLInputElement>;
 }
 
+/**
+ * Minimal FocusEvent mock for focus/blur handlers.
+ */
+function focusEvent() {
+  return {} as unknown as React.FocusEvent<HTMLInputElement>;
+}
+
 describe('usePhoneInput', () => {
   // ───────────────────────────────────────────────────────────────
   // Default / uncontrolled mode
@@ -44,9 +51,11 @@ describe('usePhoneInput', () => {
       expect(result.current.value).toBe('');
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.country?.capital).toBe('Bogotá');
-      // In Model B, the input only contains the national digits.
-      // The dial code lives in the country-select trigger, not here.
-      expect(result.current.inputValue).toBe('');
+      // When the value is empty but a country is selected, the input
+      // shows "+<dialCode> " as an editable prefix. The trailing
+      // space is the ONLY time a space is added automatically — it
+      // makes it obvious where the user can start typing.
+      expect(result.current.inputValue).toBe('+57 ');
     });
   });
 
@@ -67,8 +76,8 @@ describe('usePhoneInput', () => {
 
       // Internal value is always the canonical E.164 string.
       expect(result.current.value).toBe('+573105551234');
-      // Displayed inputValue is the national portion, masked per country.
-      expect(result.current.inputValue).toBe('310 555 1234');
+      // Displayed inputValue is the full international format.
+      expect(result.current.inputValue).toBe('+57 310 555 1234');
       expect(result.current.isValid).toBe(true);
     });
 
@@ -85,7 +94,7 @@ describe('usePhoneInput', () => {
       });
 
       expect(result.current.value).toBe('+573105551234');
-      expect(result.current.inputValue).toBe('310 555 1234');
+      expect(result.current.inputValue).toBe('+57 310 555 1234');
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.isValid).toBe(true);
     });
@@ -114,7 +123,7 @@ describe('usePhoneInput', () => {
       expect(result.current.country?.iso2).toBe('co');
     });
 
-    it('clears the value when the user deletes all digits', () => {
+    it('clears both value and country when the user empties the input', () => {
       const { result } = renderHook(() =>
         usePhoneInput({ defaultValue: '+573105551234' }),
       );
@@ -125,43 +134,181 @@ describe('usePhoneInput', () => {
 
       expect(result.current.value).toBe('');
       expect(result.current.isValid).toBe(false);
-      // The country should be preserved when clearing.
-      expect(result.current.country?.iso2).toBe('co');
+      // Clearing the input also clears the country — this is what
+      // lets the user immediately type a different international
+      // prefix (e.g. "+380" for Ukraine) without being locked into
+      // the previous selection.
+      expect(result.current.country).toBe(null);
     });
 
-    it('user can clear the input via backspace and re-type a new number', () => {
-      // This is the regression test for the Model A bug where the
-      // dial code prefix was unfightable: backspace would shrink the
-      // input to "+57", the formatter would re-stamp it back to "+57 ",
-      // and the user got stuck. With Model B the dial code never lives
-      // in the input, so backspace clears national digits cleanly and
-      // typing fresh digits works immediately.
+    it('backspacing past the current dial code clears the country', () => {
       const { result } = renderHook(() =>
-        usePhoneInput({ defaultCountry: 'co' }),
+        usePhoneInput({
+          defaultCountry: 'co',
+          defaultValue: '+573105551234',
+        }),
       );
+      expect(result.current.country?.iso2).toBe('co');
 
-      // Type a Colombian number.
+      // User backspaces down to just "+5" — shorter than CO's dial
+      // code "57". The hook treats this as "I'm switching countries"
+      // and clears the selection so the trie can re-detect on the
+      // next keystroke.
       act(() => {
-        result.current.getInputProps().onChange(changeEvent('3105551234'));
+        result.current.getInputProps().onChange(changeEvent('+5'));
       });
-      expect(result.current.inputValue).toBe('310 555 1234');
-      expect(result.current.value).toBe('+573105551234');
+      expect(result.current.country).toBe(null);
+      expect(result.current.value).toBe('+5');
+    });
 
-      // User selects-all and deletes (browser fires onChange with "").
+    it('user can clear the input and type a different country prefix', () => {
+      // The exact flow the user described: "+57 3002995465" → Colombia,
+      // clear everything, "+380 099 1234" → Ukraine. No dropdown
+      // interaction required — pure keyboard typing in the main input.
+      const { result } = renderHook(() => usePhoneInput());
+
+      // Step 1: type the Colombian international number
+      act(() => {
+        result.current
+          .getInputProps()
+          .onChange(changeEvent('+573002995465'));
+      });
+      expect(result.current.country?.iso2).toBe('co');
+      expect(result.current.country?.capital).toBe('Bogotá');
+
+      // Step 2: Cmd+A + Backspace — empty the input
       act(() => {
         result.current.getInputProps().onChange(changeEvent(''));
       });
-      expect(result.current.inputValue).toBe('');
+      expect(result.current.country).toBe(null);
       expect(result.current.value).toBe('');
-      // Country is preserved so the next typed digits are still CO.
-      expect(result.current.country?.iso2).toBe('co');
 
-      // User immediately types a new Colombian number — should work.
+      // Step 3: type a Ukrainian international number from scratch
       act(() => {
-        result.current.getInputProps().onChange(changeEvent('3209876543'));
+        result.current
+          .getInputProps()
+          .onChange(changeEvent('+380991234567'));
       });
-      expect(result.current.inputValue).toBe('320 987 6543');
-      expect(result.current.value).toBe('+573209876543');
+      expect(result.current.country?.iso2).toBe('ua');
+      expect(result.current.country?.name).toBe('Ukraine');
+      expect(result.current.value).toBe('+380991234567');
+    });
+
+    it('focusing an empty input with no country auto-inserts "+"', () => {
+      // The usability contract: when the user clicks or tabs into an
+      // empty input that has no country, the hook inserts a lone "+"
+      // as the value so the user can immediately start typing dial
+      // code digits without ever having to type "+" themselves.
+      const { result } = renderHook(() => usePhoneInput());
+      expect(result.current.value).toBe('');
+      expect(result.current.inputValue).toBe('');
+
+      act(() => {
+        result.current.getInputProps().onFocus(focusEvent());
+      });
+
+      expect(result.current.value).toBe('+');
+      expect(result.current.inputValue).toBe('+');
+      expect(result.current.country).toBe(null);
+    });
+
+    it('blurring with only "+" clears the value back to empty', () => {
+      // If the user focuses, sees the "+" appear, and then clicks
+      // away without typing anything, restore the empty state so
+      // the input placeholder is visible again instead of a
+      // dangling "+".
+      const { result } = renderHook(() => usePhoneInput());
+
+      act(() => {
+        result.current.getInputProps().onFocus(focusEvent());
+      });
+      expect(result.current.value).toBe('+');
+
+      act(() => {
+        result.current.getInputProps().onBlur(focusEvent());
+      });
+      expect(result.current.value).toBe('');
+      expect(result.current.inputValue).toBe('');
+    });
+
+    it('blurring with a real value (not just "+") keeps the value', () => {
+      const { result } = renderHook(() => usePhoneInput());
+
+      // Focus → "+"
+      act(() => {
+        result.current.getInputProps().onFocus(focusEvent());
+      });
+      // User types digits → real value
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('+380'));
+      });
+      expect(result.current.value).toBe('+380');
+      expect(result.current.country?.iso2).toBe('ua');
+
+      // Blur should NOT clear a real value
+      act(() => {
+        result.current.getInputProps().onBlur(focusEvent());
+      });
+      expect(result.current.value).toBe('+380');
+      expect(result.current.country?.iso2).toBe('ua');
+    });
+
+    it('focus is a no-op when a country is already selected', () => {
+      const { result } = renderHook(() =>
+        usePhoneInput({ defaultCountry: 'co' }),
+      );
+      expect(result.current.value).toBe('');
+      expect(result.current.country?.iso2).toBe('co');
+      expect(result.current.inputValue).toBe('+57 ');
+
+      // Focus should NOT add a lone "+" because the input already
+      // shows "+57 " via the inputValue derivation — overwriting
+      // that with "+" would wipe the country selection.
+      act(() => {
+        result.current.getInputProps().onFocus(focusEvent());
+      });
+      expect(result.current.value).toBe('');
+      expect(result.current.country?.iso2).toBe('co');
+      expect(result.current.inputValue).toBe('+57 ');
+    });
+
+    it('typing a digit in an empty input auto-prefixes "+" for the user', () => {
+      // Usability contract: when the input is empty and no country
+      // is selected yet, the user should NEVER have to type "+"
+      // themselves. The hook adds it automatically on the first
+      // digit, so the user can just tap the keyboard and start.
+      const { result } = renderHook(() => usePhoneInput());
+      expect(result.current.value).toBe('');
+      expect(result.current.inputValue).toBe('');
+
+      // User types "3" — hook auto-prefixes "+"
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('3'));
+      });
+      expect(result.current.value).toBe('+3');
+      expect(result.current.inputValue).toBe('+3');
+      expect(result.current.country).toBe(null); // not a full match yet
+
+      // User continues typing — "+3" + "8" = "+38"
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('+38'));
+      });
+      expect(result.current.value).toBe('+38');
+
+      // Once the digits form a full dial code, the country appears
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('+380'));
+      });
+      expect(result.current.country?.iso2).toBe('ua');
+      expect(result.current.country?.name).toBe('Ukraine');
+
+      // Further digits format against the Ukrainian mask
+      act(() => {
+        result.current.getInputProps().onChange(changeEvent('+380991234567'));
+      });
+      expect(result.current.country?.iso2).toBe('ua');
+      expect(result.current.value).toBe('+380991234567');
+      expect(result.current.inputValue.startsWith('+380 ')).toBe(true);
     });
 
     it('typing 2-letter ISO code switches country and clears the input', () => {
@@ -177,7 +324,10 @@ describe('usePhoneInput', () => {
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.country?.capital).toBe('Bogotá');
       expect(result.current.value).toBe('');
-      expect(result.current.inputValue).toBe('');
+      // After the shortcut fires, the input shows the new country's
+      // prefix as the editable starting point, ready for the user to
+      // type the national digits.
+      expect(result.current.inputValue).toBe('+57 ');
     });
 
     it('typing 3-letter ISO code (alpha-3) switches the country', () => {
@@ -262,14 +412,11 @@ describe('usePhoneInput', () => {
       expect(result.current.value).toBe('+442071838750');
     });
 
-    it('inputValue never starts with the dial code prefix', () => {
-      // Structural guarantee of Model B — the input is always free
-      // of any "+<dialCode>" prefix, regardless of how the value got
-      // there. The dial code lives in the country-select trigger.
-      // (We can't use a simple .not.toContain(dialCode) because the
-      // dial code digits may legitimately appear inside the masked
-      // national number — e.g. US country.dialCode="1" naturally
-      // shows up in "(1)23-4567" type masks.)
+    it('inputValue always starts with the international prefix', () => {
+      // Structural guarantee: every non-empty value with a detected
+      // country shows the full "+<dialCode> <national>" format, so
+      // the user always sees the complete international number they
+      // entered. This is the Model A display contract.
       const cases: Array<{
         defaultCountry: 'co' | 'us' | 'gb';
         defaultValue: string;
@@ -278,17 +425,17 @@ describe('usePhoneInput', () => {
         {
           defaultCountry: 'co',
           defaultValue: '+573105551234',
-          expectedInputValue: '310 555 1234',
+          expectedInputValue: '+57 310 555 1234',
         },
         {
           defaultCountry: 'us',
           defaultValue: '+12025551234',
-          expectedInputValue: '202 555 1234',
+          expectedInputValue: '+1 202 555 1234',
         },
         {
           defaultCountry: 'gb',
           defaultValue: '+442071838750',
-          expectedInputValue: '2071 838750',
+          expectedInputValue: '+44 2071 838750',
         },
       ];
 
@@ -296,12 +443,7 @@ describe('usePhoneInput', () => {
         const { result } = renderHook(() =>
           usePhoneInput({ defaultCountry, defaultValue }),
         );
-        expect(result.current.inputValue.startsWith('+')).toBe(false);
-        expect(
-          result.current.inputValue.startsWith(
-            result.current.country!.dialCode,
-          ) && result.current.inputValue.charAt(1) === ' ',
-        ).toBe(false);
+        expect(result.current.inputValue.startsWith('+')).toBe(true);
         expect(result.current.inputValue).toBe(expectedInputValue);
       }
     });

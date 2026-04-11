@@ -20,44 +20,8 @@
 
 import { useEffect, useRef } from 'react';
 import { usePhoneInput } from '@intl-ui/react';
-import type { UsePhoneInputReturn } from '@intl-ui/react';
 
-// ─────────────────────────────────────────────────────────────────────
-// Live state inspector — JSON view of every relevant hook field
-// ─────────────────────────────────────────────────────────────────────
-function StateInspector({ api }: { api: UsePhoneInputReturn }) {
-  return (
-    <div className="mt-4 space-y-2">
-      <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-        Hook state
-      </div>
-      <pre className="text-xs bg-slate-900 text-slate-100 rounded p-3 overflow-auto">
-        {JSON.stringify(
-          {
-            value: api.value,
-            inputValue: api.inputValue,
-            country: api.country
-              ? {
-                  iso2: api.country.iso2,
-                  iso3: api.country.iso3,
-                  name: api.country.name,
-                  dialCode: api.country.dialCode,
-                  flag: api.country.flag,
-                  capital: api.country.capital,
-                }
-              : null,
-            isValid: api.isValid,
-            isOpen: api.isOpen,
-            focusedIndex: api.focusedIndex,
-            visibleCount: api.visibleCountries.length,
-          },
-          null,
-          2,
-        )}
-      </pre>
-    </div>
-  );
-}
+import { OutputInspector } from '../components/OutputInspector';
 
 // ─────────────────────────────────────────────────────────────────────
 // Hook into "click outside the dropdown to close it"
@@ -93,6 +57,8 @@ export function FullUxDemo() {
     isOpen,
     isValid,
     focusedIndex,
+    filter,
+    value,
     visibleCountries,
     getInputProps,
     getCountrySelectProps,
@@ -102,15 +68,25 @@ export function FullUxDemo() {
     setFilter,
   } = api;
 
-  // Auto-focus the search box when the dropdown opens.
+  // When the dropdown opens:
+  //   1. Auto-focus the search box so the user can type immediately
+  //   2. If the main input already contains a partial "+prefix" that
+  //      didn't match a full country yet, pre-populate the search so
+  //      the list filters to the matching dial codes right away.
+  //
+  // When the dropdown closes:
+  //   - Clear the filter so the next opening starts clean.
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (isOpen && searchRef.current) {
-      searchRef.current.focus();
+    if (isOpen) {
+      if (searchRef.current) searchRef.current.focus();
+      if (!country && value.startsWith('+')) {
+        setFilter(value.replace(/^\+/, ''));
+      }
     } else {
       setFilter('');
     }
-  }, [isOpen, setFilter]);
+  }, [isOpen, country, value, setFilter]);
 
   // Click-outside to close the dropdown.
   const containerRef = useClickOutside<HTMLDivElement>(isOpen, () =>
@@ -121,26 +97,33 @@ export function FullUxDemo() {
     <div>
       {/* ─── Instructions ───────────────────────────────────────── */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-        <div className="font-semibold text-blue-900 mb-1">
-          🎯 Try any of these to set the country:
+        <div className="font-semibold text-blue-900 mb-2">
+          🎯 Four ways to set the country — just click and type
         </div>
         <ol className="list-decimal list-inside space-y-1 text-blue-900">
           <li>
-            <strong>Click the country button</strong> → search by name, ISO code,
-            or dial code in the dropdown
+            <strong>Click into the input</strong> — the{' '}
+            <code className="bg-white px-1 rounded">+</code> appears
+            automatically. Then type dial-code digits:{' '}
+            <code className="bg-white px-1 rounded">380</code> →{' '}
+            <code className="bg-white px-1 rounded">+380</code> 🇺🇦
           </li>
           <li>
-            <strong>Type a "+" code</strong> in the input — e.g.{' '}
-            <code className="bg-white px-1 rounded">+380</code> for Ukraine,{' '}
-            <code className="bg-white px-1 rounded">+44</code> for UK,{' '}
-            <code className="bg-white px-1 rounded">+57</code> for Colombia
+            <strong>Type a "+" code</strong> — e.g.{' '}
+            <code className="bg-white px-1 rounded">+380</code> Ukraine,{' '}
+            <code className="bg-white px-1 rounded">+44</code> UK,{' '}
+            <code className="bg-white px-1 rounded">+57</code> Colombia
           </li>
           <li>
-            <strong>Type the ISO code</strong> (2 or 3 letters) — e.g.{' '}
+            <strong>Type the ISO code</strong> (2 or 3 letters) —{' '}
             <code className="bg-white px-1 rounded">co</code>,{' '}
             <code className="bg-white px-1 rounded">USA</code>,{' '}
             <code className="bg-white px-1 rounded">gb</code>,{' '}
             <code className="bg-white px-1 rounded">deu</code>
+          </li>
+          <li>
+            <strong>Click the country button</strong> → search by name, ISO,
+            or dial code
           </li>
         </ol>
       </div>
@@ -173,7 +156,9 @@ export function FullUxDemo() {
         <input
           {...getInputProps()}
           placeholder={
-            country ? 'National number' : 'Phone, +code, or ISO (co, usa, gb…)'
+            country
+              ? 'National number'
+              : 'Type digits or a +code — the + is added for you'
           }
           className={`flex-1 px-3 py-2 border border-l-0 rounded-r outline-none transition-colors ${
             isValid
@@ -189,7 +174,8 @@ export function FullUxDemo() {
               <input
                 ref={searchRef}
                 type="search"
-                placeholder="Search by name, ISO, or +code…"
+                placeholder="Search by name, ISO, or dial code…"
+                value={filter}
                 onChange={(event) => setFilter(event.target.value)}
                 onKeyDown={(event) => {
                   // Forward arrow keys / Enter / Escape to the hook so
@@ -258,12 +244,23 @@ export function FullUxDemo() {
               <span className="ml-2 text-green-700">✓ valid number</span>
             )}
           </>
+        ) : value === '' ? (
+          <em className="text-blue-600">
+            💡 Click the input — the <code className="bg-blue-50 px-1 rounded">+</code>{' '}
+            appears automatically so you can type the dial code digits
+          </em>
+        ) : value === '+' ? (
+          <em className="text-blue-600">
+            ✨ Now type digits for the dial code — e.g.{' '}
+            <code className="bg-blue-50 px-1 rounded">380</code> for 🇺🇦,{' '}
+            <code className="bg-blue-50 px-1 rounded">44</code> for 🇬🇧
+          </em>
         ) : (
-          <em>No country selected yet — try the input or the dropdown</em>
+          <em>Keep typing — {value.length > 2 ? 'detecting country…' : `stored: ${value}`}</em>
         )}
       </div>
 
-      <StateInspector api={api} />
+      <OutputInspector api={api} />
     </div>
   );
 }
