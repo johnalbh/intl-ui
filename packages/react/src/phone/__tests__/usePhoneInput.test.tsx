@@ -51,11 +51,9 @@ describe('usePhoneInput', () => {
       expect(result.current.value).toBe('');
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.country?.capital).toBe('Bogotá');
-      // When the value is empty but a country is selected, the input
-      // shows "+<dialCode> " as an editable prefix. The trailing
-      // space is the ONLY time a space is added automatically — it
-      // makes it obvious where the user can start typing.
-      expect(result.current.inputValue).toBe('+57 ');
+      // When a country is set, the input is EMPTY — the dial code
+      // lives in the trigger button, not in the input. No duplication.
+      expect(result.current.inputValue).toBe('');
     });
   });
 
@@ -76,8 +74,9 @@ describe('usePhoneInput', () => {
 
       // Internal value is always the canonical E.164 string.
       expect(result.current.value).toBe('+573105551234');
-      // Displayed inputValue is the full international format.
-      expect(result.current.inputValue).toBe('+57 310 555 1234');
+      // The input shows ONLY the national digits — the dial code
+      // lives in the trigger button to avoid duplication.
+      expect(result.current.inputValue).toBe('310 555 1234');
       expect(result.current.isValid).toBe(true);
     });
 
@@ -86,15 +85,14 @@ describe('usePhoneInput', () => {
         usePhoneInput({ defaultCountry: 'co' }),
       );
 
-      // When the user pastes "+57 3105551234", the leading + flips
-      // the handler into international mode and the trie parses the
-      // dial code out of the digits.
       act(() => {
         result.current.getInputProps().onChange(changeEvent('+57 3105551234'));
       });
 
       expect(result.current.value).toBe('+573105551234');
-      expect(result.current.inputValue).toBe('+57 310 555 1234');
+      // Even though the user typed "+57...", the inputValue strips
+      // the prefix once the country is detected.
+      expect(result.current.inputValue).toBe('310 555 1234');
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.isValid).toBe(true);
     });
@@ -259,17 +257,16 @@ describe('usePhoneInput', () => {
       );
       expect(result.current.value).toBe('');
       expect(result.current.country?.iso2).toBe('co');
-      expect(result.current.inputValue).toBe('+57 ');
+      // With a country set, the input is empty — dial code is in trigger.
+      expect(result.current.inputValue).toBe('');
 
-      // Focus should NOT add a lone "+" because the input already
-      // shows "+57 " via the inputValue derivation — overwriting
-      // that with "+" would wipe the country selection.
+      // Focus should NOT add "+" because a country is already selected.
       act(() => {
         result.current.getInputProps().onFocus(focusEvent());
       });
       expect(result.current.value).toBe('');
       expect(result.current.country?.iso2).toBe('co');
-      expect(result.current.inputValue).toBe('+57 ');
+      expect(result.current.inputValue).toBe('');
     });
 
     it('typing a digit in an empty input auto-prefixes "+" for the user', () => {
@@ -286,29 +283,36 @@ describe('usePhoneInput', () => {
         result.current.getInputProps().onChange(changeEvent('3'));
       });
       expect(result.current.value).toBe('+3');
+      // No country yet → inputValue shows the raw value
       expect(result.current.inputValue).toBe('+3');
-      expect(result.current.country).toBe(null); // not a full match yet
+      expect(result.current.country).toBe(null);
 
       // User continues typing — "+3" + "8" = "+38"
       act(() => {
         result.current.getInputProps().onChange(changeEvent('+38'));
       });
       expect(result.current.value).toBe('+38');
+      // Still no country → raw value visible
+      expect(result.current.inputValue).toBe('+38');
 
       // Once the digits form a full dial code, the country appears
+      // and the dial code "moves" from the input to the trigger.
       act(() => {
         result.current.getInputProps().onChange(changeEvent('+380'));
       });
       expect(result.current.country?.iso2).toBe('ua');
       expect(result.current.country?.name).toBe('Ukraine');
+      // Country detected → inputValue is now empty (dial code is in trigger)
+      expect(result.current.inputValue).toBe('');
 
-      // Further digits format against the Ukrainian mask
+      // Further digits show ONLY the national portion
       act(() => {
         result.current.getInputProps().onChange(changeEvent('+380991234567'));
       });
       expect(result.current.country?.iso2).toBe('ua');
       expect(result.current.value).toBe('+380991234567');
-      expect(result.current.inputValue.startsWith('+380 ')).toBe(true);
+      expect(result.current.inputValue.startsWith('+')).toBe(false);
+      expect(result.current.inputValue.length).toBeGreaterThan(0);
     });
 
     it('typing 2-letter ISO code switches country and clears the input', () => {
@@ -324,10 +328,8 @@ describe('usePhoneInput', () => {
       expect(result.current.country?.iso2).toBe('co');
       expect(result.current.country?.capital).toBe('Bogotá');
       expect(result.current.value).toBe('');
-      // After the shortcut fires, the input shows the new country's
-      // prefix as the editable starting point, ready for the user to
-      // type the national digits.
-      expect(result.current.inputValue).toBe('+57 ');
+      // Country set + empty value → input is empty (dial code in trigger).
+      expect(result.current.inputValue).toBe('');
     });
 
     it('typing 3-letter ISO code (alpha-3) switches the country', () => {
@@ -412,11 +414,11 @@ describe('usePhoneInput', () => {
       expect(result.current.value).toBe('+442071838750');
     });
 
-    it('inputValue always starts with the international prefix', () => {
-      // Structural guarantee: every non-empty value with a detected
-      // country shows the full "+<dialCode> <national>" format, so
-      // the user always sees the complete international number they
-      // entered. This is the Model A display contract.
+    it('inputValue shows national-only digits when country is set (no dial code duplication)', () => {
+      // Structural guarantee: when a country is detected or selected,
+      // the input shows ONLY the national portion formatted with the
+      // country mask. The dial code lives in the trigger button, so
+      // the user never sees "+57" duplicated in two places.
       const cases: Array<{
         defaultCountry: 'co' | 'us' | 'gb';
         defaultValue: string;
@@ -425,17 +427,17 @@ describe('usePhoneInput', () => {
         {
           defaultCountry: 'co',
           defaultValue: '+573105551234',
-          expectedInputValue: '+57 310 555 1234',
+          expectedInputValue: '310 555 1234',
         },
         {
           defaultCountry: 'us',
           defaultValue: '+12025551234',
-          expectedInputValue: '+1 202 555 1234',
+          expectedInputValue: '202 555 1234',
         },
         {
           defaultCountry: 'gb',
           defaultValue: '+442071838750',
-          expectedInputValue: '+44 2071 838750',
+          expectedInputValue: '2071 838750',
         },
       ];
 
@@ -443,7 +445,8 @@ describe('usePhoneInput', () => {
         const { result } = renderHook(() =>
           usePhoneInput({ defaultCountry, defaultValue }),
         );
-        expect(result.current.inputValue.startsWith('+')).toBe(true);
+        // Must NOT start with "+" — the prefix is in the trigger, not the input
+        expect(result.current.inputValue.startsWith('+')).toBe(false);
         expect(result.current.inputValue).toBe(expectedInputValue);
       }
     });

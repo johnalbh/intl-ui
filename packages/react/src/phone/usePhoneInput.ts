@@ -11,7 +11,7 @@ import {
 import {
   buildDialCodeTrie,
   countries as allCountries,
-  formatPhone,
+  formatNational,
   getCountryByIso2,
   getCountryByIso3,
   guessCountryByPhone,
@@ -154,28 +154,35 @@ export function usePhoneInput(
 
   const isValid = parsed?.isValid ?? false;
 
-  // The input shows the full international format — "+<dialCode> <mask>"
-  // — so the user sees exactly what they are typing. This is the
-  // classic "combined input" model from react-phone-number-input and
-  // intl-tel-input. Backspacing is made non-broken by handleInputChange:
-  // when the user deletes past the dial code or clears the input
-  // completely, the country is cleared too and they can immediately
-  // type a new international prefix (e.g. "+380" for Ukraine) and the
-  // trie re-detects the country.
+  // Hybrid display model — the dial code lives in the trigger button,
+  // NOT in the input. This eliminates the "+57 ... +57" duplication.
   //
-  // The one subtle case: when value === "" + country, we show
-  // "+<dialCode> " as an editable placeholder (the space makes it
-  // obvious where the national digits will go). When the user hits
-  // backspace and the value becomes just the dial code digits, we
-  // show "+<dialCode>" without the trailing space — otherwise the
-  // formatter would re-stamp the space and trap the user in a loop.
+  // Two phases:
+  //
+  //   1. Detection phase (country === null) — the user is typing an
+  //      international prefix (+3, +38, +380...) and hasn't matched a
+  //      country yet. Show the raw value as-is so the user sees what
+  //      they're typing, including the "+".
+  //
+  //   2. Country-set phase (country !== null) — the country is detected
+  //      or pre-selected. The dial code is shown in the trigger button,
+  //      so the input shows ONLY the national portion. No duplication.
+  //
+  // The transition from phase 1 to 2 is seamless: the "+380" the user
+  // was typing "moves" from the input to the trigger button the moment
+  // the trie matches Ukraine, and the input becomes ready for national
+  // digits. Backspace works naturally because there's no prefix to
+  // fight in phase 2, and in phase 1 the raw value is fully editable.
   const inputValue = useMemo(() => {
     if (!value && !country) return '';
-    if (!value && country) return `+${country.dialCode} `;
+    if (!value && country) return '';
     if (!country) return value;
     const digits = removeNonDigits(value);
-    if (digits === country.dialCode) return `+${country.dialCode}`;
-    return formatPhone(value, country);
+    const nationalDigits = digits.startsWith(country.dialCode)
+      ? digits.slice(country.dialCode.length)
+      : digits;
+    if (nationalDigits.length === 0) return '';
+    return formatNational(nationalDigits, country);
   }, [value, country]);
 
   const visibleCountries = useMemo(() => {
