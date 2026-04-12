@@ -38,14 +38,43 @@ jobs:
       - name: Test
         run: pnpm test
 
-  # The publish job is intentionally omitted until @intl-ui/react ships.
-  # Publishing @intl-ui/core alone would put a "data-only" package on npm
-  # without the product it was built to support, which muddies the first
-  # impression and wastes the one-shot launch attention.
-  #
-  # When ready to release (end of Phase 2):
-  #   1. Create an npm org for the chosen scope (e.g. @intl-ui)
-  #   2. Generate an Automation token on npm
-  #   3. Add it as NPM_TOKEN in GitHub repository secrets
-  #   4. Restore the publish job — see git history of this file for the
-  #      previous configuration (changesets/action@v1 + pnpm release)
+  publish:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Configure npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npm whoami
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v1
+        with:
+          publish: pnpm release
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
