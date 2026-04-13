@@ -13,3 +13,4 @@ coverage/
 
 # Internal planning docs — not meant to ship with the package
 PLAN.md
+.vercel
