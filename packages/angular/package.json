@@ -1,0 +1,85 @@
+{
+  "name": "@intl-ui/angular",
+  "version": "1.0.0",
+  "description": "Angular components and directives for international UI: phone input, country selector. Signal-based, standalone, accessible.",
+  "license": "MIT",
+  "author": "John Alberto López Hernández",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@intl-ui/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@angular/core": "^17.0.0 || ^18.0.0 || ^19.0.0",
+    "@angular/forms": "^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@angular/compiler": "^19.2.0",
+    "@angular/core": "^19.2.0",
+    "@angular/forms": "^19.2.0",
+    "@angular/platform-browser": "^19.2.0",
+    "@angular/platform-browser-dynamic": "^19.2.0",
+    "@intl-ui/eslint-config": "workspace:*",
+    "@intl-ui/tsconfig": "workspace:*",
+    "@intl-ui/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "^3.2.1",
+    "eslint": "^9.18.0",
+    "rxjs": "^7.8.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1",
+    "zone.js": "^0.15.0"
+  },
+  "keywords": [
+    "angular",
+    "phone",
+    "phone-input",
+    "international",
+    "country",
+    "country-select",
+    "standalone",
+    "signals",
+    "accessible",
+    "wcag",
+    "intl",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnalbh/intl-ui",
+    "directory": "packages/angular"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
