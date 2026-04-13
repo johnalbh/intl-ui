@@ -8,9 +8,14 @@ coverage/
 .env
 .env.local
 
+# Angular
+.angular/
+
+# Vercel
+.vercel
+
 # Local scratchpad for manual smoke tests — not part of the published package
 .claude/
 
 # Internal planning docs — not meant to ship with the package
 PLAN.md
-.vercel
