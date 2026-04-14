@@ -29,20 +29,11 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      - name: Check default npm version
-        run: npm --version
-
-      - name: Ensure npm >= 11.5.1 (required for OIDC Trusted Publishing)
+      - name: Upgrade npm via corepack (required for OIDC Trusted Publishing)
         run: |
-          current=$(npm --version)
-          required="11.5.1"
-          if [ "$(printf '%s\n' "$required" "$current" | sort -V | head -n1)" != "$required" ]; then
-            echo "npm $current is below $required, upgrading..."
-            npm install -g npm@11 --force
-            npm --version
-          else
-            echo "npm $current is already >= $required"
-          fi
+          corepack enable
+          corepack prepare npm@11.5.1 --activate
+          npm --version
 
       - run: pnpm install --frozen-lockfile
 
