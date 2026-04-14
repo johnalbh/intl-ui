@@ -1,6 +1,6 @@
 {
   "name": "@intl-ui/angular",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Angular components and directives for international UI: phone input, country selector. Signal-based, standalone, accessible.",
   "license": "MIT",
   "author": "John Alberto López Hernández",
