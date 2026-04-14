@@ -1,5 +1,12 @@
 # @intl-ui/react
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [7a2a01c]
+  - @intl-ui/core@1.0.3
+
 ## 1.0.4
 
 ### Patch Changes
