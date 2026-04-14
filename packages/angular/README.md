@@ -1,14 +1,17 @@
 # @intl-ui/angular
 
 [![npm](https://img.shields.io/npm/v/@intl-ui/angular)](https://www.npmjs.com/package/@intl-ui/angular)
-[![bundle](https://img.shields.io/badge/gzip-~18_KB-blue)](https://bundlephobia.com/package/@intl-ui/angular)
+[![bundle](https://img.shields.io/badge/gzip-~18_KB-brightgreen)](https://bundlephobia.com/package/@intl-ui/angular)
 [![types](https://img.shields.io/badge/types-TypeScript-blue)](https://www.typescriptlang.org/)
+[![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 Angular components and directives for international phone input. Signal-based, standalone, accessible.
 
 Part of the [@intl-ui](https://github.com/johnalbh/intl-ui) ecosystem.
 
-> **[Live Demo](https://johnalbh.github.io/intl-ui/angular/)**  |  **[React version](https://www.npmjs.com/package/@intl-ui/react)**
+> **[Live Demo](https://johnalbh.github.io/intl-ui/angular/)** &nbsp;·&nbsp; **[React version](https://www.npmjs.com/package/@intl-ui/react)** &nbsp;·&nbsp; **[GitHub](https://github.com/johnalbh/intl-ui)**
+
+---
 
 ## Install
 
@@ -16,9 +19,36 @@ Part of the [@intl-ui](https://github.com/johnalbh/intl-ui) ecosystem.
 npm install @intl-ui/angular
 # or
 pnpm add @intl-ui/angular
+# or
+yarn add @intl-ui/angular
 ```
 
 **Peer dependencies:** `@angular/core` and `@angular/forms` (v17+).
+
+---
+
+## Quick start
+
+```typescript
+import { Component, signal } from '@angular/core';
+import { IntlPhoneInputComponent } from '@intl-ui/angular';
+
+@Component({
+  standalone: true,
+  imports: [IntlPhoneInputComponent],
+  template: `
+    <intl-phone-input [defaultCountry]="'co'" [(value)]="phone" />
+    <p>E.164: {{ phone() }}</p>
+  `,
+})
+export class AppComponent {
+  phone = signal('');
+}
+```
+
+That's it. See it running in the **[live demo](https://johnalbh.github.io/intl-ui/angular/)**.
+
+---
 
 ## Usage
 
