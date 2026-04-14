@@ -1,6 +1,6 @@
 {
   "name": "@intl-ui/react",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "React components and hooks for international UI: phone input, country selector, city selector. Headless-first, accessible, framework-free styling.",
   "license": "MIT",
   "author": "John Alberto López Hernández",
