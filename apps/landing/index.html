@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>intl-ui &mdash; International UI components for React & Angular</title>
+    <meta
+      name="description"
+      content="Phone input, country selector, and localized form components for React and Angular. Framework-agnostic core, headless-first, accessible."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container">
+        <nav class="nav">
+          <span class="brand">intl-ui</span>
+          <div class="nav-links">
+            <a href="#packages">Packages</a>
+            <a href="#examples">Examples</a>
+            <a href="#demos">Live demos</a>
+            <a href="https://github.com/johnalbh/intl-ui" target="_blank" rel="noopener">GitHub</a>
+          </div>
+        </nav>
+
+        <div class="hero-content">
+          <div class="hero-badge">Now available on npm</div>
+          <h1>International UI components<br /><span class="gradient">for React &amp; Angular</span></h1>
+          <p class="lede">
+            Phone input, country selector, and localized forms. One framework-agnostic
+            core, thin wrappers per framework. Headless-first, accessible, zero styling opinions.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#packages">Get started</a>
+            <a class="btn btn-ghost" href="#demos">See live demos &rarr;</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat">
+              <div class="stat-value">200+</div>
+              <div class="stat-label">Countries</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value">~14 KB</div>
+              <div class="stat-label">React bundle (gzip)</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value">136</div>
+              <div class="stat-label">Tests</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value">0</div>
+              <div class="stat-label">Runtime deps in core</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- PACKAGES                                                    -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section id="packages" class="section">
+        <div class="container">
+          <div class="section-header">
+            <h2>Three packages, one ecosystem</h2>
+            <p>
+              Use the framework wrapper that matches your stack, or consume the
+              core directly from Node, Deno, Bun, or any browser.
+            </p>
+          </div>
+
+          <div class="cards">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-icon core">&lt;/&gt;</div>
+                <div>
+                  <h3>@intl-ui/core</h3>
+                  <span class="card-badge">Framework-agnostic</span>
+                </div>
+              </div>
+              <p>
+                Country data, phone parsing, formatting, validation, and a
+                dial-code trie. Zero runtime dependencies &mdash; runs anywhere.
+              </p>
+              <pre class="code-block"><code>npm install @intl-ui/core</code></pre>
+              <div class="card-footer">
+                <a
+                  href="https://www.npmjs.com/package/@intl-ui/core"
+                  target="_blank"
+                  rel="noopener"
+                  class="card-link"
+                  >View on npm &rarr;</a
+                >
+              </div>
+            </div>
+
+            <div class="card card-featured">
+              <div class="card-header">
+                <div class="card-icon react">&#9881;</div>
+                <div>
+                  <h3>@intl-ui/react</h3>
+                  <span class="card-badge">React 18 &amp; 19</span>
+                </div>
+              </div>
+              <p>
+                Headless <code>usePhoneInput()</code> hook, compound components
+                with <code>asChild</code>, and a one-liner <code>&lt;PhoneInput /&gt;</code>.
+              </p>
+              <pre class="code-block"><code>npm install @intl-ui/react</code></pre>
+              <div class="card-footer">
+                <a href="./react/" class="card-link-primary">Live demo &rarr;</a>
+                <a
+                  href="https://www.npmjs.com/package/@intl-ui/react"
+                  target="_blank"
+                  rel="noopener"
+                  class="card-link"
+                  >npm</a
+                >
+              </div>
+            </div>
+
+            <div class="card card-featured">
+              <div class="card-header">
+                <div class="card-icon angular">&#9650;</div>
+                <div>
+                  <h3>@intl-ui/angular</h3>
+                  <span class="card-badge">Angular 17+</span>
+                </div>
+              </div>
+              <p>
+                Signal-based store, standalone component,
+                <code>ControlValueAccessor</code>, and form validators.
+              </p>
+              <pre class="code-block"><code>npm install @intl-ui/angular</code></pre>
+              <div class="card-footer">
+                <a href="./angular/" class="card-link-primary">Live demo &rarr;</a>
+                <a
+                  href="https://www.npmjs.com/package/@intl-ui/angular"
+                  target="_blank"
+                  rel="noopener"
+                  class="card-link"
+                  >npm</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- EXAMPLES                                                    -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section id="examples" class="section section-alt">
+        <div class="container">
+          <div class="section-header">
+            <h2>Examples</h2>
+            <p>The same behavior, expressed three ways.</p>
+          </div>
+
+          <div class="example">
+            <div class="example-label">
+              <span class="example-icon react">&#9881;</span>
+              <h3>React &mdash; one-liner</h3>
+            </div>
+            <pre class="code-block code-block-lg"><code><span class="kw">import</span> { PhoneInput } <span class="kw">from</span> <span class="str">'@intl-ui/react'</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;PhoneInput
+      defaultCountry=<span class="str">"co"</span>
+      onValueChange={(value, meta) =&gt; {
+        console.<span class="fn">log</span>(value);         <span class="cmt">// "+573105551234"</span>
+        console.<span class="fn">log</span>(meta.isValid);  <span class="cmt">// true</span>
+        console.<span class="fn">log</span>(meta.country); <span class="cmt">// { name: "Colombia", ... }</span>
+      }}
+    /&gt;
+  );
+}</code></pre>
+          </div>
+
+          <div class="example">
+            <div class="example-label">
+              <span class="example-icon angular">&#9650;</span>
+              <h3>Angular &mdash; standalone component</h3>
+            </div>
+            <pre class="code-block code-block-lg"><code><span class="kw">import</span> { Component, signal } <span class="kw">from</span> <span class="str">'@angular/core'</span>;
+<span class="kw">import</span> { IntlPhoneInputComponent } <span class="kw">from</span> <span class="str">'@intl-ui/angular'</span>;
+
+@<span class="fn">Component</span>({
+  standalone: <span class="kw">true</span>,
+  imports: [IntlPhoneInputComponent],
+  template: <span class="str">`
+    &lt;intl-phone-input [defaultCountry]="'co'" [(value)]="phone" /&gt;
+    &lt;p&gt;E.164: {{ phone() }}&lt;/p&gt;
+  `</span>,
+})
+<span class="kw">export class</span> <span class="fn">AppComponent</span> {
+  phone = <span class="fn">signal</span>(<span class="str">''</span>);
+}</code></pre>
+          </div>
+
+          <div class="example">
+            <div class="example-label">
+              <span class="example-icon core">&lt;/&gt;</span>
+              <h3>Core &mdash; no UI framework</h3>
+            </div>
+            <pre class="code-block code-block-lg"><code><span class="kw">import</span> { parsePhone, validatePhone, getCountryByIso2 } <span class="kw">from</span> <span class="str">'@intl-ui/core'</span>;
+
+<span class="kw">const</span> parsed = <span class="fn">parsePhone</span>(<span class="str">'+573105551234'</span>);
+<span class="cmt">// {</span>
+<span class="cmt">//   e164: "+573105551234",</span>
+<span class="cmt">//   national: "310 555 1234",</span>
+<span class="cmt">//   international: "+57 310 555 1234",</span>
+<span class="cmt">//   country: { name: "Colombia", iso2: "co", dialCode: "57", ... },</span>
+<span class="cmt">//   isValid: true</span>
+<span class="cmt">// }</span>
+
+<span class="kw">const</span> country = <span class="fn">getCountryByIso2</span>(<span class="str">'co'</span>);
+<span class="kw">const</span> result = <span class="fn">validatePhone</span>(<span class="str">'+573105551234'</span>, country);</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- FEATURES                                                    -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section class="section">
+        <div class="container">
+          <div class="section-header">
+            <h2>What you get</h2>
+          </div>
+
+          <div class="features">
+            <div class="feature">
+              <div class="feature-icon">&#128640;</div>
+              <h4>Auto country detection</h4>
+              <p>
+                Typing a dial code switches the country instantly via an O(k)
+                dial-code trie.
+              </p>
+            </div>
+            <div class="feature">
+              <div class="feature-icon">&#9883;</div>
+              <h4>ISO shortcut</h4>
+              <p>
+                Type <code>co</code>, <code>usa</code>, or <code>gb</code> in the
+                input to switch country without opening the dropdown.
+              </p>
+            </div>
+            <div class="feature">
+              <div class="feature-icon">&#9729;</div>
+              <h4>Searchable dropdown</h4>
+              <p>Filter 200+ countries by name, ISO code, or dial code.</p>
+            </div>
+            <div class="feature">
+              <div class="feature-icon">&#9000;</div>
+              <h4>Full keyboard navigation</h4>
+              <p>Arrow keys, Enter, Escape, and typeahead search.</p>
+            </div>
+            <div class="feature">
+              <div class="feature-icon">&#9888;</div>
+              <h4>Accessible by default</h4>
+              <p>
+                WAI-ARIA combobox pattern, focus management, live announcements.
+              </p>
+            </div>
+            <div class="feature">
+              <div class="feature-icon">&#127758;</div>
+              <h4>Works everywhere</h4>
+              <p>
+                Core runs in Node, Deno, Bun, Cloudflare Workers, and every
+                browser.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- DEMOS                                                       -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section id="demos" class="section section-alt">
+        <div class="container">
+          <div class="section-header">
+            <h2>Live demos</h2>
+            <p>Interactive playgrounds for each framework wrapper.</p>
+          </div>
+
+          <div class="demos">
+            <a href="./react/" class="demo-card">
+              <div class="demo-icon react">&#9881;</div>
+              <h3>React playground</h3>
+              <p>
+                10 interactive demos: full UX, compound components, headless
+                hook, controlled &amp; uncontrolled modes.
+              </p>
+              <span class="demo-cta">Open playground &rarr;</span>
+            </a>
+
+            <a href="./angular/" class="demo-card">
+              <div class="demo-icon angular">&#9650;</div>
+              <h3>Angular playground</h3>
+              <p>
+                4 demos: two-way binding, Reactive Forms, headless store,
+                preferred countries.
+              </p>
+              <span class="demo-cta">Open playground &rarr;</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div>
+            <div class="brand">intl-ui</div>
+            <p>MIT &copy; John Alberto L&oacute;pez Hern&aacute;ndez</p>
+          </div>
+          <div class="footer-links">
+            <a
+              href="https://github.com/johnalbh/intl-ui"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+            <a
+              href="https://www.npmjs.com/package/@intl-ui/core"
+              target="_blank"
+              rel="noopener"
+              >@intl-ui/core</a
+            >
+            <a
+              href="https://www.npmjs.com/package/@intl-ui/react"
+              target="_blank"
+              rel="noopener"
+              >@intl-ui/react</a
+            >
+            <a
+              href="https://www.npmjs.com/package/@intl-ui/angular"
+              target="_blank"
+              rel="noopener"
+              >@intl-ui/angular</a
+            >
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

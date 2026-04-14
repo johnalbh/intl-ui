@@ -237,7 +237,7 @@ import {
         <p>
           &#64;intl-ui/angular &bull;
           <a href="https://github.com/johnalbh/intl-ui" target="_blank">GitHub</a> &bull;
-          <a href="https://johnalbh.github.io/intl-ui/" target="_blank">React Playground</a>
+          <a href="https://johnalbh.github.io/intl-ui/react/" target="_blank">React Playground</a>
         </p>
       </footer>
     </div>

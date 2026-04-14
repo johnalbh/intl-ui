@@ -29,23 +29,29 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build library packages
+        run: pnpm turbo run build --filter='./packages/*'
+
       - name: Build React playground
-        run: pnpm turbo run build --filter=@intl-ui/playground...
+        run: pnpm turbo run build --filter=@intl-ui/playground
         env:
           GITHUB_PAGES: 'true'
-
-      - name: Build Angular playground dependencies
-        run: pnpm turbo run build --filter=@intl-ui/angular...
 
       - name: Build Angular playground
         run: pnpm --filter @intl-ui/playground-angular build:ghpages
 
-      - name: Merge playgrounds into single site
+      - name: Assemble site
         run: |
           mkdir -p _site
-          cp -r apps/playground/dist/* _site/
+          # Landing page at root
+          cp apps/landing/index.html apps/landing/styles.css _site/
+          # React playground at /react/
+          mkdir -p _site/react
+          cp -r apps/playground/dist/* _site/react/
+          # Angular playground at /angular/
           mkdir -p _site/angular
           cp -r apps/playground-angular/dist/browser/* _site/angular/
+          ls -la _site
 
       - uses: actions/configure-pages@v5
 

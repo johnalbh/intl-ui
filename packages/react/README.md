@@ -9,7 +9,7 @@ React components and hooks for international phone input. Headless-first, access
 
 Part of the [@intl-ui](https://github.com/johnalbh/intl-ui) ecosystem.
 
-> **[Live Demo](https://johnalbh.github.io/intl-ui/)** &nbsp;·&nbsp; **[Angular version](https://www.npmjs.com/package/@intl-ui/angular)** &nbsp;·&nbsp; **[GitHub](https://github.com/johnalbh/intl-ui)**
+> **[Live Demo](https://johnalbh.github.io/intl-ui/react/)** &nbsp;·&nbsp; **[Angular version](https://www.npmjs.com/package/@intl-ui/angular)** &nbsp;·&nbsp; **[GitHub](https://github.com/johnalbh/intl-ui)**
 
 ---
 
@@ -48,7 +48,7 @@ function App() {
 }
 ```
 
-That's it. You get a fully working phone input with country dropdown, auto-detection, keyboard navigation, and validation. See it running in the **[live demo](https://johnalbh.github.io/intl-ui/)**.
+That's it. You get a fully working phone input with country dropdown, auto-detection, keyboard navigation, and validation. See it running in the **[live demo](https://johnalbh.github.io/intl-ui/react/)**.
 
 ---
 

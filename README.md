@@ -12,7 +12,7 @@ A multi-framework ecosystem for phone input, country selection, and localized fo
 [![@intl-ui/angular](https://img.shields.io/npm/v/@intl-ui/angular?label=%40intl-ui%2Fangular)](https://www.npmjs.com/package/@intl-ui/angular)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)](./tooling/tsconfig/base.json)
 
-**[Live Demo &mdash; React](https://johnalbh.github.io/intl-ui/)** &nbsp;·&nbsp;
+**[Live Demo &mdash; React](https://johnalbh.github.io/intl-ui/react/)** &nbsp;·&nbsp;
 **[Live Demo &mdash; Angular](https://johnalbh.github.io/intl-ui/angular/)** &nbsp;·&nbsp;
 **[GitHub](https://github.com/johnalbh/intl-ui)**
 
