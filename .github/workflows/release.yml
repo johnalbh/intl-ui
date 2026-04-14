@@ -43,13 +43,29 @@ jobs:
       - name: Run tests
         run: pnpm turbo run test --filter='./packages/*'
 
-      - name: Create Release PR or Publish
+      - name: Create Version PR (changesets)
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm release
           version: pnpm version-packages
           title: 'chore: version packages'
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm via OIDC Trusted Publishing
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          set -e
+          for pkg_dir in packages/core packages/react packages/angular; do
+            pushd "$pkg_dir" > /dev/null
+            name=$(node -p "require('./package.json').name")
+            version=$(node -p "require('./package.json').version")
+            if npm view "$name@$version" version > /dev/null 2>&1; then
+              echo "[skip] $name@$version already on npm"
+            else
+              echo "[publish] $name@$version via OIDC..."
+              npm publish --access public
+            fi
+            popd > /dev/null
+          done
