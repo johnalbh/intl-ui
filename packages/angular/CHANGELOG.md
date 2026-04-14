@@ -1,5 +1,12 @@
 # @intl-ui/angular
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [7a2a01c]
+  - @intl-ui/core@1.0.3
+
 ## 1.0.2
 
 ### Patch Changes

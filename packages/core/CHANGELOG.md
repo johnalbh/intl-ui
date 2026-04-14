@@ -1,5 +1,11 @@
 # @intl-ui/core
 
+## 1.0.3
+
+### Patch Changes
+
+- 7a2a01c: Verify end-to-end publish flow after hardening: Publishing access set to "disallow tokens", Trusted Publisher via OIDC is the only authenticated path.
+
 ## 1.0.2
 
 ### Patch Changes
