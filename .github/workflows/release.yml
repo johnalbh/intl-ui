@@ -29,11 +29,14 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      - name: Upgrade npm via corepack (required for OIDC Trusted Publishing)
+      - name: Install npm >= 11.5.1 for OIDC Trusted Publishing
         run: |
-          corepack enable
-          corepack prepare npm@11.5.1 --activate
-          npm --version
+          mkdir -p "$HOME/.npm-global"
+          npm install -g --prefix="$HOME/.npm-global" npm@11.5.1
+          echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
+
+      - name: Verify npm version
+        run: npm --version
 
       - run: pnpm install --frozen-lockfile
 
