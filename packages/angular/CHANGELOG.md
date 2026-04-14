@@ -1,5 +1,11 @@
 # @intl-ui/angular
 
+## 1.0.2
+
+### Patch Changes
+
+- c239333: Add Quick Start section and license badge to the README for consistency with `@intl-ui/react`.
+
 ## 1.0.1
 
 ### Patch Changes
