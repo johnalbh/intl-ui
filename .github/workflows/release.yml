@@ -29,6 +29,9 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      - name: Ensure npm >= 11.5.1 (required for OIDC Trusted Publishing)
+        run: npm install -g npm@latest && npm --version
+
       - run: pnpm install --frozen-lockfile
 
       - name: Build all packages
@@ -36,16 +39,6 @@ jobs:
 
       - name: Run tests
         run: pnpm turbo run test --filter='./packages/*'
-
-      - name: Verify npm auth
-        run: |
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          echo "Who am I on npm?"
-          npm whoami || echo "FAILED: token is invalid or malformed"
-          echo "Access to @intl-ui/core?"
-          npm access get status @intl-ui/core 2>&1 || true
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create Release PR or Publish
         id: changesets
@@ -57,4 +50,3 @@ jobs:
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
