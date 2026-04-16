@@ -1,6 +1,6 @@
 {
   "name": "@intl-ui/core",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Framework-agnostic international data and utilities: countries, phone formatting, validation, dial codes",
   "license": "MIT",
   "author": "John Alberto López Hernández",
