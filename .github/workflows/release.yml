@@ -56,6 +56,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve workspace protocol for publishing
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          set -e
+          # Get the actual version of @intl-ui/core
+          core_version=$(node -p "require('./packages/core/package.json').version")
+          echo "Resolved @intl-ui/core version: $core_version"
+
+          # Replace workspace:* with real versions in publishable packages
+          for pkg_dir in packages/core packages/react packages/angular; do
+            pkg_json="$pkg_dir/package.json"
+            if grep -q '"workspace:\*"' "$pkg_json"; then
+              echo "Resolving workspace:* in $pkg_json"
+              sed -i "s/\"workspace:\\*\"/\"^${core_version}\"/g" "$pkg_json"
+            fi
+            # Remove devDependencies with workspace protocol (not needed in publish)
+            node -e "
+              const fs = require('fs');
+              const pkg = JSON.parse(fs.readFileSync('$pkg_json', 'utf8'));
+              if (pkg.devDependencies) {
+                for (const [k, v] of Object.entries(pkg.devDependencies)) {
+                  if (String(v).includes('workspace:')) delete pkg.devDependencies[k];
+                }
+              }
+              fs.writeFileSync('$pkg_json', JSON.stringify(pkg, null, 2) + '\n');
+            "
+          done
+
       - name: Publish to npm via OIDC Trusted Publishing
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
@@ -72,6 +100,13 @@ jobs:
             fi
             popd > /dev/null
           done
+
+      - name: Deprecate broken versions (workspace:* leak)
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        continue-on-error: true
+        run: |
+          npm deprecate "@intl-ui/react@>=1.0.2 <=1.0.6" "broken workspace:* dependency, use >=1.0.7"
+          npm deprecate "@intl-ui/angular@>=1.0.2 <=1.0.4" "broken workspace:* dependency, use >=1.0.5"
 
       - name: Create GitHub Releases
         if: steps.changesets.outputs.hasChangesets == 'false'
