@@ -1,30 +1,32 @@
 import {
-  useCallback,
-  useMemo,
-  useReducer,
-  useRef,
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
+  useCallback,
+  useMemo,
+  useReducer,
+  useRef,
 } from 'react';
+
 import {
   buildDialCodeTrie,
   countries as allCountries,
+  type Country,
+  type CountryIso2,
   formatNational,
   getCountryByIso2,
   getCountryByIso3,
   guessCountryByPhone,
   normalizeText,
+  type ParsedPhone,
   parsePhone,
   removeNonDigits,
-  type Country,
-  type CountryIso2,
-  type ParsedPhone,
 } from '@intl-ui/core';
 
 import { initialUiState, uiReducer } from './reducer';
 import { useControllableState } from './use-controllable-state';
+
 import type {
   CountryListProps,
   CountryOptionProps,
@@ -58,9 +60,7 @@ import type {
  *    sprint 2.1: the input cursor jumps to the end after each reformat.
  *    A future sprint may add cursor tracking if feedback demands it.
  */
-export function usePhoneInput(
-  options: UsePhoneInputOptions = {},
-): UsePhoneInputReturn {
+export function usePhoneInput(options: UsePhoneInputOptions = {}): UsePhoneInputReturn {
   const {
     value: controlledValue,
     defaultValue,
@@ -74,10 +74,7 @@ export function usePhoneInput(
   } = options;
 
   // ─── Country list (stable reference for trie + visible list) ─────
-  const countryList = useMemo(
-    () => countryListOverride ?? allCountries,
-    [countryListOverride],
-  );
+  const countryList = useMemo(() => countryListOverride ?? allCountries, [countryListOverride]);
 
   // Preferred countries pinned to the top of the visible list, in the
   // order the consumer provided them.
@@ -131,9 +128,7 @@ export function usePhoneInput(
   const initialCountry = initialCountryRef.current;
 
   const [country, setCountryRaw] = useControllableState<Country | null>({
-    value: controlledCountry
-      ? (getCountryByIso2(controlledCountry) ?? null)
-      : undefined,
+    value: controlledCountry ? (getCountryByIso2(controlledCountry) ?? null) : undefined,
     defaultValue: initialCountry,
     fallback: null,
   });
@@ -205,9 +200,7 @@ export function usePhoneInput(
       nextCountry: Country | null,
       source: ValueChangeSource,
     ): ValueChangeMeta => {
-      const nextParsed = nextValue
-        ? parsePhone(nextValue, nextCountry ?? undefined)
-        : null;
+      const nextParsed = nextValue ? parsePhone(nextValue, nextCountry ?? undefined) : null;
       return {
         country: nextParsed?.country ?? nextCountry,
         isValid: nextParsed?.isValid ?? false,
@@ -221,10 +214,7 @@ export function usePhoneInput(
   const emitChange = useCallback(
     (nextValue: string, source: ValueChangeSource) => {
       setValueRaw(nextValue);
-      onValueChange?.(
-        nextValue,
-        buildMeta(nextValue, currentCountryRef.current, source),
-      );
+      onValueChange?.(nextValue, buildMeta(nextValue, currentCountryRef.current, source));
     },
     [setValueRaw, onValueChange, buildMeta],
   );
@@ -266,8 +256,7 @@ export function usePhoneInput(
       // ─── Path 1: ISO shortcut ────────────────────────────────────
       if (!disableCountryGuess && /^[A-Za-z]{2,3}$/.test(trimmed)) {
         const code = trimmed.toLowerCase();
-        const matched =
-          code.length === 2 ? getCountryByIso2(code) : getCountryByIso3(code);
+        const matched = code.length === 2 ? getCountryByIso2(code) : getCountryByIso3(code);
         if (matched) {
           setCountryRaw(matched);
           emitChange('', 'user-type');
@@ -307,11 +296,7 @@ export function usePhoneInput(
           return;
         }
         if (!disableCountryGuess) {
-          const guess = guessCountryByPhone(
-            trie,
-            digits,
-            country ?? undefined,
-          );
+          const guess = guessCountryByPhone(trie, digits, country ?? undefined);
           if (guess.country && guess.country.iso2 !== country?.iso2) {
             setCountryRaw(guess.country);
           }
@@ -323,6 +308,17 @@ export function usePhoneInput(
       // ─── Path 6: National format ─────────────────────────────────
       if (country) {
         const canonical = `+${country.dialCode}${digits}`;
+        // Re-detect country: the national digits may contain an area
+        // code belonging to a different +1 (NANP) country. For example,
+        // if the user types "268 555 1234" while US is selected, the
+        // full number +1268... actually belongs to Antigua.
+        if (!disableCountryGuess) {
+          const fullDigits = country.dialCode + digits;
+          const guess = guessCountryByPhone(trie, fullDigits, country);
+          if (guess.country && guess.country.iso2 !== country.iso2) {
+            setCountryRaw(guess.country);
+          }
+        }
         emitChange(canonical, 'user-type');
         return;
       }
@@ -370,12 +366,7 @@ export function usePhoneInput(
         dispatch({ type: 'CLOSE' });
       }
     },
-    [
-      uiState.isOpen,
-      uiState.focusedIndex,
-      visibleCountries,
-      setCountryRaw,
-    ],
+    [uiState.isOpen, uiState.focusedIndex, visibleCountries, setCountryRaw],
   );
 
   // ─── Keyboard handler for the country-select button ──────────────
@@ -472,10 +463,7 @@ export function usePhoneInput(
             : digits;
         const canonical = `+${next.dialCode}${nationalDigits}`;
         setValueRaw(canonical);
-        onValueChange?.(
-          canonical,
-          buildMeta(canonical, next, 'country-change'),
-        );
+        onValueChange?.(canonical, buildMeta(canonical, next, 'country-change'));
       }
     },
     [value, setCountryRaw, setValueRaw, onValueChange, buildMeta],
@@ -499,14 +487,7 @@ export function usePhoneInput(
       defaultValue ?? '',
       buildMeta(defaultValue ?? '', initialCountry ?? null, 'reset'),
     );
-  }, [
-    defaultValue,
-    initialCountry,
-    setValueRaw,
-    setCountryRaw,
-    onValueChange,
-    buildMeta,
-  ]);
+  }, [defaultValue, initialCountry, setValueRaw, setCountryRaw, onValueChange, buildMeta]);
 
   // ─── Sync country when the controlled value changes externally ──
   // In controlled mode the parent may change `value` without also
@@ -606,24 +587,14 @@ export function usePhoneInput(
               : digits;
           const canonical = `+${c.dialCode}${nationalDigits}`;
           setValueRaw(canonical);
-          onValueChange?.(
-            canonical,
-            buildMeta(canonical, c, 'country-change'),
-          );
+          onValueChange?.(canonical, buildMeta(canonical, c, 'country-change'));
         }
       },
       onMouseEnter: () => {
         dispatch({ type: 'SET_FOCUSED_INDEX', index });
       },
     }),
-    [
-      country?.iso2,
-      value,
-      setCountryRaw,
-      setValueRaw,
-      onValueChange,
-      buildMeta,
-    ],
+    [country?.iso2, value, setCountryRaw, setValueRaw, onValueChange, buildMeta],
   );
 
   return {

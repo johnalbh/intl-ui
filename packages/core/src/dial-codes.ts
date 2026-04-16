@@ -54,20 +54,15 @@ export function buildDialCodeTrie(countryList: Country[]): DialCodeTrieNode {
 }
 
 /**
- * Find countries matching a phone number's dial code using the trie.
- * Traverses the trie as deep as possible, collecting the deepest match.
- *
- * @param trie - Pre-built dial code trie
- * @param digits - Phone digits (without +)
- * @returns Best matching country and whether it was a full dial code match
+ * Walk the trie as deep as possible, returning the deepest node's countries.
  */
-export function findCountryByDigits(
+function traverseTrie(
   trie: DialCodeTrieNode,
   digits: string,
-): CountryGuessResult {
+): { matches: Country[]; depth: number } {
   let node = trie;
-  let lastMatch: Country[] = [];
-  let lastMatchDepth = 0;
+  let matches: Country[] = [];
+  let depth = 0;
 
   for (let i = 0; i < digits.length; i++) {
     const digit = digits[i];
@@ -76,22 +71,58 @@ export function findCountryByDigits(
     node = node.children.get(digit)!;
 
     if (node.countries.length > 0) {
-      lastMatch = node.countries;
-      lastMatchDepth = i + 1;
+      matches = node.countries;
+      depth = i + 1;
     }
   }
 
-  if (lastMatch.length === 0) {
+  return { matches, depth };
+}
+
+/**
+ * Find the best matching country for a phone number's dial code.
+ * Traverses the trie as deep as possible, returning the highest-priority match.
+ *
+ * @param trie - Pre-built dial code trie
+ * @param digits - Phone digits (without +)
+ * @returns Best matching country and whether it was a full dial code match
+ *
+ * @example
+ * findCountryByDigits(trie, '12015551234') // → { country: US, fullDialCodeMatch: true }
+ * findCountryByDigits(trie, '1')           // → { country: US, fullDialCodeMatch: true }
+ */
+export function findCountryByDigits(trie: DialCodeTrieNode, digits: string): CountryGuessResult {
+  const { matches, depth } = traverseTrie(trie, digits);
+
+  if (matches.length === 0) {
     return { country: undefined, fullDialCodeMatch: false };
   }
 
-  // Sort by priority (lower = higher priority) and return best match
-  const sorted = [...lastMatch].sort((a, b) => a.priority - b.priority);
+  const sorted = [...matches].sort((a, b) => a.priority - b.priority);
 
   return {
     country: sorted[0],
-    fullDialCodeMatch: lastMatchDepth >= (sorted[0]?.dialCode.length ?? 0),
+    fullDialCodeMatch: depth >= (sorted[0]?.dialCode.length ?? 0),
   };
+}
+
+/**
+ * Find ALL countries matching a phone number's dial code.
+ * Returns every candidate sorted by priority (lower = higher).
+ * Useful for UI layers that want to show a country selector when ambiguous.
+ *
+ * @param trie - Pre-built dial code trie
+ * @param digits - Phone digits (without +)
+ * @returns All matching countries sorted by priority
+ *
+ * @example
+ * findAllCountriesByDigits(trie, '1')    // → [US, CA, AG, BS, ...] (14 NANP countries)
+ * findAllCountriesByDigits(trie, '1268') // → [AG] (only Antigua)
+ * findAllCountriesByDigits(trie, '57')   // → [CO] (unambiguous)
+ */
+export function findAllCountriesByDigits(trie: DialCodeTrieNode, digits: string): Country[] {
+  const { matches } = traverseTrie(trie, digits);
+  return [...matches].sort((a, b) => a.priority - b.priority);
 }
 
 /**
@@ -129,8 +160,7 @@ export function guessCountryByPhone(
     ) {
       // Only switch away if we matched an area code that doesn't belong to currentCountry
       const matchedByAreaCode =
-        result.fullDialCodeMatch &&
-        digits.length > currentCountry.dialCode.length;
+        result.fullDialCodeMatch && digits.length > currentCountry.dialCode.length;
       const areaCodeDigits = digits.slice(currentCountry.dialCode.length);
       const currentHasThisAreaCode =
         currentCountry.areaCodes?.some((ac) => areaCodeDigits.startsWith(ac)) ?? false;

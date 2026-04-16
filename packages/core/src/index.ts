@@ -27,6 +27,7 @@ export {
 export {
   buildDialCodeTrie,
   findCountryByDigits,
+  findAllCountriesByDigits,
   guessCountryByPhone,
 } from './dial-codes';
 

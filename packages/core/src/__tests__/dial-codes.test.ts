@@ -1,10 +1,18 @@
-import { describe, expect, it, beforeAll } from 'vitest';
+import {
+  beforeAll,
+  describe,
+  expect,
+  it,
+} from 'vitest';
+
 import { countries } from '../countries';
 import {
   buildDialCodeTrie,
+  findAllCountriesByDigits,
   findCountryByDigits,
   guessCountryByPhone,
 } from '../dial-codes';
+
 import type { DialCodeTrieNode } from '../types';
 
 let trie: DialCodeTrieNode;
@@ -96,5 +104,56 @@ describe('guessCountryByPhone', () => {
   it('guesses from digits with dashes', () => {
     const result = guessCountryByPhone(trie, '49-170-1234567');
     expect(result.country?.iso2).toBe('de');
+  });
+
+  it('defaults to USA for bare +1 (not Caribbean)', () => {
+    const result = guessCountryByPhone(trie, '+1');
+    expect(result.country?.iso2).toBe('us');
+  });
+
+  it('detects Antigua when area code 268 is present', () => {
+    const result = guessCountryByPhone(trie, '+1268 555 1234');
+    expect(result.country?.iso2).toBe('ag');
+  });
+
+  it('detects Canada when area code 204 is present', () => {
+    const result = guessCountryByPhone(trie, '+1204 555 1234');
+    expect(result.country?.iso2).toBe('ca');
+  });
+
+  it('detects Jamaica when area code 876 is present', () => {
+    const result = guessCountryByPhone(trie, '+1876 555 1234');
+    expect(result.country?.iso2).toBe('jm');
+  });
+});
+
+describe('findAllCountriesByDigits', () => {
+  it('returns all +1 countries sorted by priority', () => {
+    const results = findAllCountriesByDigits(trie, '1');
+    expect(results.length).toBeGreaterThan(1);
+    // US should be first (priority 0)
+    expect(results[0]?.iso2).toBe('us');
+    // Canada should be second (priority 1)
+    expect(results[1]?.iso2).toBe('ca');
+    // Caribbean nations should follow (priority 2)
+    expect(results.some((c) => c.iso2 === 'ag')).toBe(true);
+    expect(results.some((c) => c.iso2 === 'jm')).toBe(true);
+  });
+
+  it('narrows to single country with area code', () => {
+    const results = findAllCountriesByDigits(trie, '1268');
+    expect(results.length).toBe(1);
+    expect(results[0]?.iso2).toBe('ag');
+  });
+
+  it('returns empty for non-existent code', () => {
+    const results = findAllCountriesByDigits(trie, '0');
+    expect(results).toHaveLength(0);
+  });
+
+  it('returns single country for unambiguous code', () => {
+    const results = findAllCountriesByDigits(trie, '57');
+    expect(results.length).toBe(1);
+    expect(results[0]?.iso2).toBe('co');
   });
 });
