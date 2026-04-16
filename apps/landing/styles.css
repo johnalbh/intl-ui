@@ -269,6 +269,7 @@ a {
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  pointer-events: none;
   mask-composite: exclude;
   opacity: 0;
   transition: opacity 0.2s;
@@ -372,14 +373,16 @@ a {
 }
 
 .card-link {
-  color: #64748b;
+  color: #3b82f6;
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none;
   transition: color 0.15s;
 }
 
 .card-link:hover {
-  color: #1e293b;
+  color: #2563eb;
+  text-decoration: underline;
 }
 
 /* ─── Code blocks ───────────────────────────────────── */
