@@ -84,6 +84,15 @@ jobs:
             "
           done
 
+      - name: Verify no workspace protocol leaks
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          if grep -r '"workspace:' packages/*/package.json; then
+            echo "ERROR: workspace: protocol found in package.json — would break npm consumers"
+            exit 1
+          fi
+          echo "OK: no workspace: protocol leaks"
+
       - name: Publish to npm via OIDC Trusted Publishing
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
