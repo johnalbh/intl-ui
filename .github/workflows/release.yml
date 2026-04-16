@@ -114,8 +114,13 @@ jobs:
         if: steps.changesets.outputs.hasChangesets == 'false'
         continue-on-error: true
         run: |
-          npm deprecate "@intl-ui/react@>=1.0.2 <=1.0.6" "broken workspace:* dependency, use >=1.0.7"
-          npm deprecate "@intl-ui/angular@>=1.0.2 <=1.0.4" "broken workspace:* dependency, use >=1.0.5"
+          # Deprecate each version individually to avoid batch 404
+          for v in 1.0.2 1.0.3 1.0.4 1.0.5 1.0.6; do
+            npm deprecate "@intl-ui/react@$v" "broken workspace:* dependency, use >=1.0.7" 2>/dev/null || true
+          done
+          for v in 1.0.2 1.0.3 1.0.4; do
+            npm deprecate "@intl-ui/angular@$v" "broken workspace:* dependency, use >=1.0.5" 2>/dev/null || true
+          done
 
       - name: Create GitHub Releases
         if: steps.changesets.outputs.hasChangesets == 'false'
