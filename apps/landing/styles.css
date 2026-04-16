@@ -275,7 +275,11 @@ a {
   display: flex;
   gap: 16px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.card > a > img {
+  margin-bottom: 12px;
 }
 
 .card-icon {
