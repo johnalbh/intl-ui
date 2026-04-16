@@ -72,3 +72,41 @@ jobs:
             fi
             popd > /dev/null
           done
+
+      - name: Create GitHub Releases
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          set -e
+          for pkg_dir in packages/core packages/react packages/angular; do
+            name=$(node -p "require('./$pkg_dir/package.json').name")
+            version=$(node -p "require('./$pkg_dir/package.json').version")
+            tag="${name}@${version}"
+            changelog="./$pkg_dir/CHANGELOG.md"
+
+            # Skip if release already exists
+            if gh release view "$tag" > /dev/null 2>&1; then
+              echo "[skip] Release $tag already exists"
+              continue
+            fi
+
+            # Skip if no CHANGELOG
+            if [ ! -f "$changelog" ]; then
+              echo "[skip] No CHANGELOG for $name"
+              continue
+            fi
+
+            # Extract the latest version section from CHANGELOG.md
+            body=$(awk "/^## ${version}$/,/^## /" "$changelog" | head -n -1 | tail -n +2)
+
+            if [ -z "$body" ]; then
+              body="Release ${name}@${version}"
+            fi
+
+            echo "[release] Creating $tag"
+            gh release create "$tag" \
+              --title "$tag" \
+              --notes "$body" \
+              --target main
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
